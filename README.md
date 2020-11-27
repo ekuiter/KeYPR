@@ -17,7 +17,7 @@ With KeYPR, we focus on the application of proof repositories to correct-by-cons
 ### The Gist
 
 - We provide the case study and evaluation results described in the thesis in the `evaluation` directory.
-- We use a modified KeY 2.7 version (in the `lib` directory, source code available [here](https://git.key-project.org/key/key/-/commits/kuiterAbstractContracts)) with support abstract contracts [7].
+- We use a modified KeY 2.7 version (in the `lib` directory, source code available [here](https://git.key-project.org/key/key/-/commits/kuiterAbstractContracts)) with support abstract contracts [[7]](#references).
 - The proof repository core and shell of KeYPR are implemented in the Lisp dialect Clojure (see `src/main/clojure/de/ovgu/spldev/keypr.clj`), which allows us to closely follow the definitions from the thesis.
 - The interface to KeY, programming model, and Java code generator are implemented in Java (see `src/main/java/de/ovgu/spldev/keypr`).
 - A pre-built and self-contained JAR file is available in the `evaluation` directory.
@@ -45,6 +45,6 @@ Feel free to [contact me](mailto:kuiter@ovgu.de) (the main developer) if you hav
 2. Elias Kuiter. 2020. Proof Repositories for Correct-by-Construction Software Product Lines. Otto-von-Guericke-University Magdeburg. 
 3. Derrick G. Kourie and Bruce W. Watson. 2014. [The Correctness-by-Construction Approach to Programming](https://www.springerprofessional.de/the-correctness-by-construction-approach-to-programming/3827484). Springer Publishing Company, Incorporated.
 4. Tabea Bordis, Tobias Runge, Alexander Knüppel, Thomas Thüm, and Ina Schaefer. 2020. [Variational correctness-by-construction](https://dl.acm.org/doi/abs/10.1145/3377024.3377038). Working Conference on Variability Modelling of Software-Intensive Systems. 
-5. Tobias Runge, Ina Schaefer, Loek Cleophas, Thomas Thüm, Derrick G. Kourie, and Bruce W. Watson. 2019. Tool Support for Correctness-by-Construction. International Conference on Fundamental Approaches to Software Engineering. 
+5. Tobias Runge, Ina Schaefer, Loek Cleophas, Thomas Thüm, Derrick G. Kourie, and Bruce W. Watson. 2019. [Tool Support for Correctness-by-Construction](https://www.springerprofessional.de/tool-support-for-correctness-by-construction/16601646). International Conference on Fundamental Approaches to Software Engineering. 
 6. Richard Bubel, Ferruccio Damiani, Reiner Hähnle, Einar Broch Johnsen, Olaf Owe, Ina Schaefer, and Ingrid Chieh Yu. 2016. [Proof Repositories for Compositional Verification of Evolving Software Systems](https://link.springer.com/chapter/10.1007/978-3-319-46508-1_8). Transactions on Foundations for Mastering Change.
 7. Richard Bubel, Reiner Hähnle, and Maria Pelevina. 2014. [Fully Abstract Operation Contracts](https://link.springer.com/chapter/10.1007/978-3-662-45231-8_9). International Symposium On Leveraging Applications of Formal Methods, Verification and Validation.
