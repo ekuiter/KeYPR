@@ -1,0 +1,35 @@
+plugins {
+    id 'idea'
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '6.0.0'
+    id 'dev.clojurephant.clojure' version '0.6.0-alpha.4'
+}
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dirs 'lib'
+    }
+    maven {
+        name = 'Clojars'
+        url = 'https://repo.clojars.org/'
+    }
+}
+
+dependencies {
+    implementation name: 'key-abstract-contracts-2.7'
+    implementation 'org.tinylog:tinylog:1.3.5'
+    implementation 'com.github.tobiasrm:tinylog-coloredconsole:1.3.1'
+    implementation 'org.clojure:clojure:1.10.0'
+    devImplementation 'org.clojure:tools.namespace:1.0.0'
+}
+
+clojureRepl {
+    port = 55555
+}
+
+sourceCompatibility = 1.8
+group 'de.ovgu.spldev'
+version '1.0-SNAPSHOT'
+mainClassName = 'de.ovgu.spldev.keypr.Main'
