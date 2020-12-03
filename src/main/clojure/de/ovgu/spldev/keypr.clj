@@ -272,24 +272,24 @@
              (set (for [C Cs :when (not (and (C :stub) (some #(and (= (C :name) (% :name)) (not (% :stub))) Cs)))] C)))
            (union (P1 :Bs) (P2 :Bs))))
 
-;;; Definition 2.23: Inverse Binding Transformation
+;;; Definition 2.23: CSPL Transformation
+(defn cspl-transformation [PL t]
+  (reduce program-union (program #{} #{}) (for [C (PL :Cs) F-M (derived-methods PL C)] (t (method-lookup PL C) F-M))))
+
+;;; Definition 2.24: Inverse Binding Transformation
 (defn inverse-binding-transformation [PL Bs]
   (into {} (for [{{_ :in to :to} :src dst :dst} Bs]
              [to (-get-method PL (signature (dst :type) nil (dst :C-name) (dst :ps)))])))
 (defn method-lookup-contains? [PL C Bs]
   (subset? (set (inverse-binding-transformation PL Bs)) (set (method-lookup PL C))))
 
-;;; Definition 2.24: Pruned Proof Repository
+;;; Definition 2.25: Pruned Proof Repository
 (defn pruned-proof-repository-domain [PL Ds]
   (set (for [D Ds :when (and (not (starts-with? (-> D :I :body) "_();"))
                              (some #(and (contains? (derived-methods PL %) (get-method-by-name PL (-> D :I :S :C-name)))
                                          (method-lookup-contains? PL % (D :Bs))) (PL :Cs)))] D)))
 (defn pruned-proof-repository [PL P]
   (let [Ds (pruned-proof-repository-domain PL (proof-repository-domain P))] [Ds (proof-repository Ds)]))
-
-;;; Definition 2.25: CSPL Transformation
-(defn cspl-transformation [PL t]
-  (reduce program-union (program #{} #{}) (for [C (PL :Cs) F-M (derived-methods PL C)] (t (method-lookup PL C) F-M))))
 
 ;;;; Syntax Checking
 (defn tree? [T]
@@ -361,7 +361,6 @@
      (reduce union (for [[D path] (map vector (map #(assoc % :Bs #{}) complete-Ds) (optimal-paths path-family))]
                      (path-> D path)))))
   ([Ds P] (reduce union (for [I (implementations P)] (late-splitting-proof-repository-domain Ds I P)))))
-
 (defn main [PL t analysis-strategy]
   (assert (cspl? PL))
   (let [P (cspl-transformation PL t)]

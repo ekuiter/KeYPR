@@ -17,7 +17,7 @@ With KeYPR, we focus on the application of proof repositories to correct-by-cons
 ### The Gist
 
 - We provide the case study and evaluation results described in the thesis in the `evaluation` directory.
-- We use a modified KeY 2.7 version (in the `lib` directory, source code available [here](https://git.key-project.org/key/key/-/commits/kuiterAbstractContracts)) with support abstract contracts [[7]](#references).
+- We use a modified KeY 2.7 version (in the `lib` directory, source code available [here](https://git.key-project.org/key/key/-/commits/kuiterAbstractContracts)) with support for abstract contracts [[7]](#references).
 - The proof repository core and shell of KeYPR are implemented in the Lisp dialect Clojure (see `src/main/clojure/de/ovgu/spldev/keypr.clj`), which allows us to closely follow the definitions from the thesis.
 - The interface to KeY, programming model, and Java code generator are implemented in Java (see `src/main/java/de/ovgu/spldev/keypr`).
 - A pre-built and self-contained JAR file is available in the `evaluation` directory.
@@ -27,7 +27,7 @@ With KeYPR, we focus on the application of proof repositories to correct-by-cons
   Alternatively, you can also load the user interface by evaluating `(key!)` inside the REPL.
 - For a manual build, the only dependency required is [JDK 1.8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
   You can build the JAR by running `./gradlew build`, which stores the JAR file into `build/libs`.
-  Alternatively, you can directly run the JAR with `./gradlew run` or start an NREPL server on port 55555 for debugging with `./gradlew clojureRepl`.
+  Alternatively, you can directly run the JAR with `./gradlew run` or start an nREPL server on port 55555 for debugging with `./gradlew clojureRepl`.
 - You can use the project with [IntelliJ IDEA](https://www.jetbrains.com/idea/) / [Cursive IDE](https://cursive-ide.com/).
   Create an `Application` run configuration to run the JAR.
   Alternatively, use `Execute Gradle Task` to run the `clojureRepl` task, then create and run a `Clojure REPL > Remote` run configuration to use the Cursive REPL.
