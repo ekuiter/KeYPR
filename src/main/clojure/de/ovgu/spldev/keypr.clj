@@ -44,6 +44,9 @@
   (union (set (for [[i N2] (N1 :children)] {:N1 N1 :i i :N2 N2}))
          (reduce union (map edges (map second (N1 :children))))))
 (defn tree-complete? [T] (every? #(implies (empty? (% :children)) (not (refinable? (-> % :H :s)))) (nodes T)))
+; todo: actually, all abstract statements must be refined.
+; Consider a composition that refines its first, but not its second abstract statement.
+; Such a tree is incomplete, but according to this definition, it is complete.
 
 ;;; Definition 2.5: Assignable Locations
 (defn assignable-locations [N]
@@ -361,15 +364,15 @@
      (reduce union (for [[D path] (map vector (map #(assoc % :Bs #{}) complete-Ds) (optimal-paths path-family))]
                      (path-> D path)))))
   ([Ds P] (reduce union (for [I (implementations P)] (late-splitting-proof-repository-domain Ds I P)))))
-(defn main [PL t analysis-strategy]
+(defn main [PL t query-strategy]
   (assert (cspl? PL))
   (let [P (cspl-transformation PL t)]
     (assert (program? P))
     (let [[Ds Rs] (pruned-proof-repository PL P)
           Rs (sorted-proof-repository Rs)
           Rs (cond
-               (= analysis-strategy :complete) (filter (fn [[D _]] (proof-descriptor-complete? P D)) Rs)
-               (= analysis-strategy :late-splitting)
+               (= query-strategy :complete) (filter (fn [[D _]] (proof-descriptor-complete? P D)) Rs)
+               (= query-strategy :late-splitting)
                (let [Ds' (late-splitting-proof-repository-domain Ds P)] (filter (fn [[D _]] (Ds' D)) Rs))
                true Rs)]
       (assert (proof-repository? Rs P))
@@ -432,8 +435,8 @@
 (defn ->ProofRepository [program Rs]
   (Program$ProofRepository. program (for [[D V] Rs] (Utils$Pair. (->ProofDescriptor program D)
                                                                  (->VerificationState program V)))))
-(defn ->Main [PL t analysis-strategy]
-  (let [[P Rs] (main PL t analysis-strategy)]
+(defn ->Main [PL t query-strategy]
+  (let [[P Rs] (main PL t query-strategy)]
     (->ProofRepository (->Program P (PL :settings) (PL :macros)) Rs)))
 (defn ->VerificationSystem [proof-repository abstract-contracts? f]
   (with-open [verification-system
@@ -499,11 +502,11 @@
 (defn load! [file]
   (if (some #(ends-with? (lower-case file) %) #{".key" ".proof" ".java"}) (key! file) (load-file file)))
 (defn check!
-  ([PL t analysis-strategy]
+  ([PL t query-strategy]
    (let [Ds (union (proof-repository-domain (cspl-transformation PL fine-grained-transformation))
                    (proof-repository-domain (cspl-transformation PL coarse-grained-transformation)))
          D-csvs (dedupe (sort (map proof-descriptor->csv Ds)))]
-     (if (= analysis-strategy :product-based)
+     (if (= query-strategy :product-based)
        (let [start (Instant/now)
              PLs (for [C (PL :Cs)] (assoc PL :Cs #{C}))
              results (for [PL PLs] (check! PL t :complete))]
@@ -511,11 +514,11 @@
           (Evaluation/reduce D-csvs (map second results))
           (.toMillis (Duration/between start (Instant/now)))])
        (let [start (Instant/now)
-             proof-repository (->Main PL t analysis-strategy)]
+             proof-repository (->Main PL t query-strategy)]
          (log-level! (keyword (.getSettingValue (.program proof-repository) "log-level")))
          (Logger/info (str "\n" (.dump (.program proof-repository))))
          (->VerificationSystem
-           proof-repository (contains? #{:exhaustive :late-splitting} analysis-strategy)
+           proof-repository (contains? #{:exhaustive :late-splitting} query-strategy)
            (fn [verification-system]
              (.verify verification-system)
              (let [check (.check verification-system)]
@@ -531,14 +534,14 @@
                 (.toMillis (Duration/between start (Instant/now)))])))))))
   ([PL t] (check! PL t :exhaustive)))
 (defn evaluate!
-  ([directory PL t analysis-strategy optimization-strategy encode-locals?]
+  ([directory PL t query-strategy optimization-strategy encode-locals?]
    (assert (contains? #{coarse-grained-transformation fine-grained-transformation} t))
-   (assert (contains? #{:exhaustive :late-splitting :complete :product-based} analysis-strategy))
+   (assert (contains? #{:exhaustive :late-splitting :complete :product-based} query-strategy))
    (assert (contains? #{nil :none :default :strict} optimization-strategy))
    (assert (contains? #{nil false true} encode-locals?))
-   (let [abstract-contracts? (contains? #{:exhaustive :late-splitting} analysis-strategy)
+   (let [abstract-contracts? (contains? #{:exhaustive :late-splitting} query-strategy)
          store (format "%s-%s%s%s" (if (= t coarse-grained-transformation) "coarse" "fine")
-                       (name analysis-strategy)
+                       (name query-strategy)
                        (if optimization-strategy (str "-" (name optimization-strategy)) "")
                        (if encode-locals? "-local" ""))
          PL (update PL :settings #(concat (conj % (->Setting :store-proof-contexts (str directory "/" store)))
@@ -547,15 +550,15 @@
      (when (and (= (not (nil? optimization-strategy)) abstract-contracts?)
                 (= (not (nil? encode-locals?)) (= t coarse-grained-transformation)))
        (Utils/deleteDirectoryIfExists (str directory "/" store))
-       [store (binding [*encode-locals?* encode-locals?] (check! PL t analysis-strategy))])))
+       [store (binding [*encode-locals?* encode-locals?] (check! PL t query-strategy))])))
   ([directory PL]
    (let [results
          (for [t #{coarse-grained-transformation fine-grained-transformation}
-               analysis-strategy #{:exhaustive :late-splitting :complete :product-based}
+               query-strategy #{:exhaustive :late-splitting :complete :product-based}
                optimization-strategy #{nil :none :default :strict}
                encode-locals? #{nil false true}]
            (let [[store [heading evaluation total-time]]
-                 (evaluate! directory PL t analysis-strategy optimization-strategy encode-locals?)]
+                 (evaluate! directory PL t query-strategy optimization-strategy encode-locals?)]
              (if store
                (let [row #(str store "; " %)
                      semantics (.evaluateSemanticsCsv evaluation) nodes (.evaluateNodesCsv evaluation)
