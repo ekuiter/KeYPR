@@ -1,5 +1,5 @@
 (ns de.ovgu.spldev.keypr
-  "KeYPR: Proof Repositories for Correct-by-Construction Software Product Lines
+  "KeYPR: KeY for Proof Repositories
   Copyright (c) Elias Kuiter 2020"
   (:use [clojure.set :only (union difference subset?)]
         [clojure.string :as s :only (join starts-with? ends-with? split lower-case)])
@@ -14,8 +14,8 @@
 
 (def ^:dynamic *encode-locals?* true)
 
-;;;; Section 1.1: First-Order and Dynamic Logic
-;;; Definition 1.1: Syntax of First-Order Logic
+;;;; Section 2.1: First-Order and Dynamic Logic
+;;; Definition 2.1: Syntax of First-Order Logic
 (defn xor-string [xs]
   (if (= (count xs) 1)
     (first xs)
@@ -23,11 +23,11 @@
          (join ") && !(" (map #(let [x (first %)] (str x " && " (first (disj % x))))
                               (into #{} (for [x xs x' xs :when (not= x x')] #{x x'})))) ")")))
 
-;;; Definition 1.2: Semantics of First-Order Logic
+;;; Definition 2.2: Semantics of First-Order Logic
 (defn implies [a b] (or (not a) b))
 
-;;;; Section 2.1: Correctness-by-Construction
-;;; Definition 2.1: Hoare Logic and Guarded Command Language
+;;;; Section 3.1: Correctness-by-Construction
+;;; Definition 3.1: Hoare Logic and Guarded Command Language
 (defn skip-statement [] `(:skip-statement 0))
 (defn assignment [ls es] (assert (= (count ls) (count es))) `(:assignment 0 ~ls ~es))
 (defn method-call [l m as] (assert (and (= (count l) 2) (every? #(= (count %) 2) as))) `(:method-call 0 ~l ~m ~as))
@@ -37,7 +37,7 @@
 (defn repetition [chi-i e-v chi-g] `(:repetition 1 ~chi-i ~e-v ~chi-g))
 (defn refinable? [s] (#{:abstract-statement :composition :selection :repetition} (first s)))
 
-;;; Definition 2.2: Syntax of CbC Trees
+;;; Definition 3.2: Syntax of CbC Trees
 (defn node ([phi s psi children] {:label (gensym) :H {:phi phi :s s :psi psi} :children children}))
 (defn nodes [N] (union #{N} (reduce union (map nodes (map second (N :children))))))
 (defn edges [N1]
@@ -48,7 +48,7 @@
 ; Consider a composition that refines its first, but not its second abstract statement.
 ; Such a tree is incomplete, but according to this definition, it is complete.
 
-;;; Definition 2.5: Assignable Locations
+;;; Definition 3.5: Assignable Locations
 (defn assignable-locations [N]
   (let [->l #(s/replace % #"\[.*\]" "[*]")]
     (union (let [s (-> N :H :s)] (cond (= (first s) :assignment) (let [[_ _ ls _] s] (set (map ->l ls)))
@@ -56,17 +56,17 @@
                                        true #{}))
            (reduce union (for [[_ N2] (N :children)] (assignable-locations N2))))))
 
-;;;; Section 2.2: Correct-by-Construction Software Product Lines
-;;; Definition 2.6: Signature
+;;;; Section 3.2: Correct-by-Construction Software Product Lines
+;;; Definition 3.6: Signature
 (defn signature [type C-name name ps] {:type type :C-name C-name :name name :ps ps})
 (defn signature-compatible? [S S'] (and (= (S :type) (S' :type)) (= (map first (S :ps)) (map first (S' :ps)))))
 (defn erase-names [S] (signature (S :type) (S :C-name) (S :name) (for [[t _] (S :ps)] [t nil])))
 
-;;; Definition 2.7: Syntax of Methods
+;;; Definition 3.7: Syntax of Methods
 (defn rename-method [M name] (assoc-in M [:S :name] name))
 (defn method-complete? [M] (tree-complete? (M :T)))
 
-;;; Definition 2.8: External Signatures
+;;; Definition 3.8: External Signatures
 (defn original-signature [M] (erase-names (signature (-> M :S :type) (-> M :S :name) "original" (-> M :S :ps))))
 (defn method-signature [M H] (let [[_ _ [l-type _] m as] (H :s)] (erase-names (signature l-type (-> M :S :name) m as))))
 (defn original? [chi] (and chi (not= (s/replace chi #"original_(pre|post)\((.*)\)" "") chi)))
@@ -80,14 +80,14 @@
 (defn external-signatures [M] (external-signatures-node (M :T) M #(if (original? %) #{(original-signature M)} #{})))
 (defn external-method-signatures [M] (external-signatures-node (M :T) M (fn [_] #{})))
 
-;;; Definition 2.9: Syntax of CSPLs
+;;; Definition 3.9: Syntax of CSPLs
 (defn get-feature [PL F-M] (some #(if (starts-with? (-> F-M :S :name) (str % "_")) %) (PL :Fs)))
 (defn -get-method [PL S] (some #(if (= (erase-names S) (erase-names (% :S))) %) (PL :F-Ms)))
 (defn get-method-by-name [PL name] (some #(if (= name (-> % :S :name)) %) (PL :F-Ms)))
 (defn get-method-name [F-M] (join "_" (rest (split (-> F-M :S :name) #"_"))))
 (defn get-bare-method [F-M] (rename-method F-M (get-method-name F-M)))
 
-;;; Definition 2.11: Semantics of CSPLs
+;;; Definition 3.11: Semantics of CSPLs
 (defn get-bare-methods [PL F] (set (for [F-M (PL :F-Ms) :when (= (get-feature PL F-M) F)] (get-bare-method F-M))))
 (defn restrict [PL C n] (set (for [F C :when (some #(= (-> % :S :name) n) (get-bare-methods PL F))] F)))
 (defn direct-< [< C F1 F2] (and (contains? C F1) (contains? C F2) (< F1 F2) (not (some #(and (< F1 %) (< % F2)) C))))
@@ -113,8 +113,8 @@
                                 (last-feature (PL :<) (restrict PL C (S' :name)) F')
                                 (= M'-name (S' :name))))] [S' F'-M'])))
 
-;;;; Section 2.3: Proof Repositories
-;;; Definition 2.12: Syntax of Programs
+;;;; Section 3.3: Proof Repositories
+;;; Definition 3.12: Syntax of Programs
 (defn program [Cs Bs] {:Cs Cs :Bs Bs})
 (defn klass [name Fs Is] {:name name :Fs Fs :Is Is})
 (defn implementation [S requires ensures assignable body no-co-Ss co-Ss]
@@ -126,7 +126,7 @@
 (defn remove-binding [P B] (program (P :Cs) (disj (P :Bs) B)))
 (defn remove-implementation [C I] (klass (C :name) (C :Fs) (disj (C :Is) I)))
 
-;;; Definition 2.13: Direct and Extended Calls
+;;; Definition 3.13: Direct and Extended Calls
 (defn direct-calls [i I] (let [Ss (if (zero? i) (I :Ss) (I :co-Ss))] (set (map #(call (erase-names (I :S)) %) Ss))))
 (defn extended-calls
   ([P i I Bs] (union (direct-calls i I)
@@ -136,16 +136,16 @@
                                 c' (extended-calls P (inc i) I' (disj Bs B))] c'))))
   ([P Bs] (reduce union (map #(extended-calls P 0 % Bs) (implementations P)))))
 
-;;; Definition 2.14: Verification System
+;;; Definition 3.14: Verification System
 (defn begin-proof [I] `(:begin-proof ~I))
 (defn continue-proof [D B] `(:continue-proof ~D ~B))
 
-;;; Definition 2.15: Syntax of Proof Repository Domains
+;;; Definition 3.15: Syntax of Proof Repository Domains
 (defn proof-descriptor [I Bs] {:I I :Bs Bs})
 (defn unbound-calls [P D] (difference (extended-calls P 0 (D :I) (D :Bs)) (set (map :src (D :Bs)))))
 (defn proof-descriptor-complete? [P D] (empty? (unbound-calls P D)))
 
-;;; Definition 2.16: Semantics of Proof Repository Domains
+;;; Definition 3.16: Semantics of Proof Repository Domains
 (defn add-binding [P B Ds]
   (let [delta-Ds (set (for [D Ds :when (contains? (unbound-calls P D) (B :src))]
                         (proof-descriptor (D :I) (conj (D :Bs) B))))]
@@ -157,7 +157,7 @@
                   (proof-descriptor I #{}))
           true #{})))
 
-;;; Definition 2.17: Syntax and Semantics of Proof Repositories
+;;; Definition 3.17: Syntax and Semantics of Proof Repositories
 (defn proof-repository [Ds]
   (let [R (fn R [D Ds]
             (if (empty? (D :Bs))
@@ -169,11 +169,11 @@
     (for [D Ds :let [V (R D Ds)] :when V] [D V])))
 (defn sorted-proof-repository [Rs] (sort-by #(count (-> % first :Bs)) Rs))
 
-;;; Definition 2.18: Semantics of Programs
+;;; Definition 3.18: Semantics of Programs
 (defn complete-verification-states [P Rs] (map second (filter #(proof-descriptor-complete? P (first %)) Rs)))
 
-;;;; Section 2.4: Reducing Method Semantics to Proof Repositories
-;;; Definition 2.19: Supplementary Transformations
+;;;; Section 3.4: Reducing Method Semantics to Proof Repositories
+;;; Definition 3.19: Supplementary Transformations
 (defn custom-signature [t n M] (signature t (-> M :S :name) n ()))
 (defn main-signature [M] (signature (-> M :S :type) (-> M :S :name) "main" (-> M :S :ps)))
 (defn translate-assignable [N] (let [ls (assignable-locations N)] (if (seq ls) (join ", " ls) "\\nothing")))
@@ -214,7 +214,7 @@
                  "}\n"))
           true (str (translate-statement s) "\n"))))
 
-;;; Definition 2.20: Coarse-Grained Transformation
+;;; Definition 3.20: Coarse-Grained Transformation
 (defn stub-class-transformation [l F-M]
   (set (for [[_ F'-M'] l :when (not= (-> F-M :S :name) (-> F'-M' :S :name))]
          (assoc (klass (-> F'-M' :S :name) (field-transformation F'-M')
@@ -239,7 +239,7 @@
                                               (inline-statement (F-M :T))) "_();")
                                    (external-method-signatures F-M)))))
 
-;;; Definition 2.21: Fine-Grained Transformation
+;;; Definition 3.21: Fine-Grained Transformation
 (defn side-condition-transformations [F-M]
   (reduce union (for [N (nodes (F-M :T))
                       :let [phi (-> N :H :phi) psi (-> N :H :psi) s (-> N :H :s) kind (first s)]]
@@ -268,25 +268,25 @@
                                                                  (contract-signatures phi psi F-M))))
                                           (side-condition-transformations F-M)))))
 
-;;;; Section 2.5: Reducing CSPL Semantics to Proof Repositories
-;;; Definition 2.22: Union of Programs
+;;;; Section 3.5: Reducing CSPL Semantics to Proof Repositories
+;;; Definition 3.22: Union of Programs
 (defn program-union [P1 P2]
   (program (let [Cs (union (P1 :Cs) (P2 :Cs))]
              (set (for [C Cs :when (not (and (C :stub) (some #(and (= (C :name) (% :name)) (not (% :stub))) Cs)))] C)))
            (union (P1 :Bs) (P2 :Bs))))
 
-;;; Definition 2.23: CSPL Transformation
+;;; Definition 3.23: CSPL Transformation
 (defn cspl-transformation [PL t]
   (reduce program-union (program #{} #{}) (for [C (PL :Cs) F-M (derived-methods PL C)] (t (method-lookup PL C) F-M))))
 
-;;; Definition 2.24: Inverse Binding Transformation
+;;; Definition 3.24: Inverse Binding Transformation
 (defn inverse-binding-transformation [PL Bs]
   (into {} (for [{{_ :in to :to} :src dst :dst} Bs]
              [to (-get-method PL (signature (dst :type) nil (dst :C-name) (dst :ps)))])))
 (defn method-lookup-contains? [PL C Bs]
   (subset? (set (inverse-binding-transformation PL Bs)) (set (method-lookup PL C))))
 
-;;; Definition 2.25: Pruned Proof Repository
+;;; Definition 3.25: Pruned Proof Repository
 (defn pruned-proof-repository-domain [PL Ds]
   (set (for [D Ds :when (and (not (starts-with? (-> D :I :body) "_();"))
                              (some #(and (contains? (derived-methods PL %) (get-method-by-name PL (-> D :I :S :C-name)))
@@ -345,7 +345,8 @@
 (defn proof-repository? [Rs P]
   (and (program? P) (every? #(and (contains? (implementations P) (% :I)) (subset? (% :Bs) (P :Bs))) (map first Rs))))
 
-;;;; Core Algorithm
+;;;; Section 3.6: Discussion
+;;; Late Splitting
 (defn late-splitting-proof-repository-domain
   ([Ds I P]
    (let [->paths (fn f [Ds D]
@@ -364,6 +365,8 @@
      (reduce union (for [[D path] (map vector (map #(assoc % :Bs #{}) complete-Ds) (optimal-paths path-family))]
                      (path-> D path)))))
   ([Ds P] (reduce union (for [I (implementations P)] (late-splitting-proof-repository-domain Ds I P)))))
+
+;;;; Core Algorithm
 (defn main [PL t query-strategy]
   (assert (cspl? PL))
   (let [P (cspl-transformation PL t)]
