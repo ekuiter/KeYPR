@@ -1,7 +1,5 @@
 package de.ovgu.spldev.keypr.aoeu;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -10,25 +8,18 @@ public class Model {
     public static class Method {
         String feature;
         String name;
-        String requires;
-        String implementation;
-        String ensures;
-        String assignable;
+        VerificationSystem.IHoareTriple hoareTriple;
         Set<Call> implementationCalls;
         Set<Call> contractCalls;
 
-        public Method(String feature, String name, String requires, String implementation, String ensures,
-                      String assignable, String[] implementationCalls, String[] contractCalls) {
+        public Method(String feature, String name, VerificationSystem.IHoareTriple hoareTriple) {
             this.feature = feature;
             this.name = name;
-            this.requires = requires;
-            this.implementation = implementation;
-            this.ensures = ensures;
-            this.assignable = assignable;
-            this.implementationCalls = Arrays.stream(implementationCalls)
+            this.hoareTriple = hoareTriple;
+            this.implementationCalls = Arrays.stream(hoareTriple.implementationCalls())
                     .map(call -> new Call(this, call))
                     .collect(Collectors.toSet());
-            this.contractCalls = Arrays.stream(contractCalls)
+            this.contractCalls = Arrays.stream(hoareTriple.contractCalls())
                     .map(call -> new Call(this, call))
                     .collect(Collectors.toSet());
         }
@@ -283,12 +274,11 @@ public class Model {
         }
 
         public String toShortString() {
-            return bindings.isEmpty() ? method.toString() : bindings.size() + "";
+            return String.format("[%d]", bindings.size());
         }
 
         public String toLongString() {
-            return String.format("%s[%s]", method, bindings.stream().map(Binding::toString)
-                    .collect(Collectors.joining(", ")));
+            return String.format("%s%s", method, bindings);
         }
 
         @Override
@@ -318,17 +308,21 @@ public class Model {
     public static class Edge {
         Node sourceNode;
         Node targetNode;
-        Binding binding;
 
-        public Edge(Node sourceNode, Node targetNode, Binding binding) {
+        public Edge(Node sourceNode, Node targetNode) {
             this.sourceNode = sourceNode;
             this.targetNode = targetNode;
-            this.binding = binding;
+        }
+
+        Set<Binding> newBindings() {
+            return targetNode.bindings.stream()
+                    .filter(binding -> !sourceNode.bindings.contains(binding))
+                    .collect(Collectors.toSet());
         }
 
         @Override
         public String toString() {
-            return String.format("%s -(%s)-> %s", sourceNode, binding, targetNode);
+            return String.format("%s -%s-> %s", sourceNode, newBindings(), targetNode);
         }
 
         @Override
@@ -336,23 +330,27 @@ public class Model {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Edge edge = (Edge) o;
-            return sourceNode.equals(edge.sourceNode) && targetNode.equals(edge.targetNode) &&
-                    binding.equals(edge.binding);
+            return sourceNode.equals(edge.sourceNode) && targetNode.equals(edge.targetNode);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(sourceNode, targetNode, binding);
+            return Objects.hash(sourceNode, targetNode);
         }
     }
 
-    public static class BindingGraph {
+    public static class BindingGraph implements Util.IDot {
         Set<Node> nodes = new HashSet<>();
         Set<Edge> edges = new HashSet<>();
 
         public BindingGraph(Set<Node> nodes) {
             this.nodes = new HashSet<>(nodes);
             this.edges = inferEdges(nodes);
+        }
+
+        public BindingGraph(BindingGraph bindingGraph) {
+            this.nodes = new HashSet<>(bindingGraph.nodes);
+            this.edges = new HashSet<>(bindingGraph.edges);
         }
 
         public BindingGraph() {
@@ -363,14 +361,10 @@ public class Model {
                     .filter(sourceNode -> targetNode.method.equals(sourceNode.method) &&
                             targetNode.bindings.containsAll(sourceNode.bindings) &&
                             targetNode.bindings.size() == sourceNode.bindings.size() + 1)
-                    .map(sourceNode -> {
-                        Set<Binding> bindings = new HashSet<>(targetNode.bindings);
-                        bindings.removeAll(sourceNode.bindings);
-                        return new Edge(sourceNode, targetNode, bindings.iterator().next());
-                    })).collect(Collectors.toSet());
+                    .map(sourceNode -> new Edge(sourceNode, targetNode))).collect(Collectors.toSet());
         }
 
-        String toDot(Set<Node> focusNodes, Set<Edge> focusEdges) {
+        String toDotString(Set<Node> focusNodes, Set<Edge> focusEdges) {
             return String.format("digraph {\n" +
                             "rankdir = LR;\n" +
                             "graph [fontname = \"Handlee\"];\n" +
@@ -378,21 +372,41 @@ public class Model {
                             "edge [fontname = \"Handlee\"];\n" +
                             "%s\n" +
                             "%s\n" +
+                            "%s\n" +
                             "}",
-                    nodes.stream().map(node -> String.format(
-                            "\"%s\" [label = \"%s\", tooltip = \"%s\", style = \"%s\"];",
-                            node.id, node.toShortString(), node.toLongString(),
-                            focusNodes != null && !focusNodes.contains(node) ? "invis" :
-                                    node.isComplete() ? "diagonals,bold" : "solid"))
+                    nodes.stream().map(node -> node.method).distinct().map(method ->
+                            String.format("subgraph \"cluster_%s\" {\n" +
+                                    "label = \"%s\";\n" +
+                                    "%s\n" +
+                                    "}\n",
+                                    method,
+                                    method,
+                                    nodes.stream()
+                                            .filter(node -> node.method.equals(method))
+                                            .map(node -> String.format(
+                                                    "\"%s\" [label = \"%s\", tooltip = \"%s\", style = \"%s\"];",
+                                                    node.id, node.toShortString(), node.toLongString(),
+                                                    focusNodes != null && !focusNodes.contains(node) ? "invis" :
+                                                            node.isComplete() ? "diagonals,bold" : "solid"))
+                                            .collect(Collectors.joining("\n"))))
                             .collect(Collectors.joining("\n")),
                     edges.stream().map(edge -> String.format("\"%s\" -> \"%s\" [tooltip = \"%s\"%s];",
-                            edge.sourceNode.id, edge.targetNode.id, edge.binding,
+                            edge.sourceNode.id, edge.targetNode.id, edge.newBindings(),
                             (focusEdges != null && !focusEdges.contains(edge) ? ", style = \"invis\"" : "")))
+                            .collect(Collectors.joining("\n")),
+                    (focusEdges != null ? focusEdges : new HashSet<Edge>()).stream()
+                            .filter(edge -> !edges.contains(edge))
+                            .map(edge -> String.format("\"%s\" -> \"%s\" [tooltip = \"%s\"];",
+                                    edge.sourceNode.id, edge.targetNode.id, edge.newBindings()))
                             .collect(Collectors.joining("\n")));
         }
 
-        String toDot() {
-            return toDot(null, null);
+        public String toDotString() {
+            return toDotString(null, null);
+        }
+
+        VerificationPlan someVerificationPlan() {
+            return new VerificationPlanGenerator(this).iterator().next();
         }
     }
 
@@ -411,19 +425,19 @@ public class Model {
         }
     }
 
-    public static class VerificationPlan {
+    public static class VerificationPlan implements Util.IDot {
         BindingGraph bindingGraph;
         Set<Node> nodes;
         Set<Edge> edges;
 
         public VerificationPlan(BindingGraph bindingGraph, Set<Node> nodes, Set<Edge> edges) {
-            this.bindingGraph = bindingGraph;
+            this.bindingGraph = new BindingGraph(bindingGraph);
             this.nodes = new HashSet<>(nodes);
             this.edges = new HashSet<>(edges);
         }
 
-        String toDot() {
-            return bindingGraph.toDot(nodes, edges);
+        public String toDotString() {
+            return bindingGraph.toDotString(nodes, edges);
         }
 
         VerificationPlan minify() {
@@ -442,13 +456,44 @@ public class Model {
             }
             return verificationPlan;
         }
+
+        VerificationPlan optimize() {
+            VerificationPlan verificationPlan = new VerificationPlan(bindingGraph, nodes, edges);
+            boolean done = false;
+            while (!done) {
+                Node removeNode = verificationPlan.nodes.stream()
+                        .filter(node -> verificationPlan.edges.stream()
+                                .filter(edge -> edge.sourceNode.equals(node)).count() == 1)
+                        .findAny().orElse(null);
+                if (removeNode != null) {
+                    Edge parentEdge = verificationPlan.edges.stream().filter(edge -> edge.targetNode.equals(removeNode))
+                            .findFirst().orElse(null);
+                    Edge childEdge = verificationPlan.edges.stream().filter(edge -> edge.sourceNode.equals(removeNode))
+                            .findFirst().get();
+                    if (parentEdge != null) {
+                        verificationPlan.edges.add(new Edge(parentEdge.sourceNode, childEdge.targetNode));
+                        verificationPlan.edges.remove(parentEdge);
+                    }
+                    verificationPlan.edges.remove(childEdge);
+                    verificationPlan.nodes.remove(removeNode);
+                } else
+                    done = true;
+            }
+            verificationPlan.bindingGraph.nodes = verificationPlan.nodes;
+            verificationPlan.bindingGraph.edges = verificationPlan.edges;
+            return verificationPlan;
+        }
+
+        VerificationAttempt verificationAttempt() {
+            return new VerificationAttempt(this);
+        }
     }
 
-    public static class SpanningForestVerificationPlanGenerator implements Iterable<VerificationPlan> {
+    public static class VerificationPlanGenerator implements Iterable<VerificationPlan> {
         BindingGraph bindingGraph;
         List<List<Edge>> edgeFamily;
 
-        public SpanningForestVerificationPlanGenerator(BindingGraph bindingGraph) {
+        public VerificationPlanGenerator(BindingGraph bindingGraph) {
             this.bindingGraph = bindingGraph;
             edgeFamily = bindingGraph.nodes.stream()
                     .map(node -> bindingGraph.edges.stream().filter(edge -> edge.targetNode.equals(node))
@@ -457,7 +502,7 @@ public class Model {
         }
 
         @Override
-        public @NotNull Iterator<VerificationPlan> iterator() {
+        public Iterator<VerificationPlan> iterator() {
             return new Iterator<VerificationPlan>() {
                 final int[] indices = new int[edgeFamily.size()];
                 boolean done = false;
@@ -495,6 +540,45 @@ public class Model {
                     return new VerificationPlan(bindingGraph, bindingGraph.nodes, edges);
                 }
             };
+        }
+    }
+
+    public static class VerificationAttempt {
+        VerificationPlan verificationPlan;
+        List<Node> sortedNodes;
+        Map<Node, VerificationSystem.IState> map = new HashMap<>();
+
+        public VerificationAttempt(VerificationPlan verificationPlan) {
+            this.verificationPlan = verificationPlan;
+            // this is ONE topological sorting, others are possible.
+            // this is not interesting if we restrict ourselves to one core and no network partitions.
+            this.sortedNodes = verificationPlan.nodes.stream()
+                    .sorted(Comparator.comparing(node -> node.bindings.size()))
+                    .collect(Collectors.toList());
+        }
+
+        @Override
+        public String toString() {
+            return sortedNodes.toString();
+        }
+
+        boolean verify(VerificationSystem verificationSystem) {
+            for (Node node : sortedNodes) {
+                if (verificationPlan.edges.stream().noneMatch(edge -> edge.targetNode.equals(node)))
+                    map.put(node, verificationSystem.beginProof(node.method, node.bindings));
+                else {
+                    Edge edge = verificationPlan.edges.stream()
+                            .filter(_edge -> _edge.targetNode.equals(node))
+                            .findFirst().get();
+                    map.put(node, verificationSystem.continueProof(map.get(edge.sourceNode), edge.newBindings()));
+                }
+            }
+            return isCorrect(verificationSystem);
+        }
+
+        boolean isCorrect(VerificationSystem verificationSystem) {
+            return sortedNodes.stream().filter(Node::isComplete).map(map::get)
+                    .allMatch(verificationSystem::completeProof);
         }
     }
 }
