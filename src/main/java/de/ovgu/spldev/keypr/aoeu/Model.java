@@ -158,8 +158,8 @@ public class Model {
         }
 
         boolean isLastFeature(Set<String> configuration, String feature, String method) {
-            return orderedConfiguration(restrictConfiguration(configuration, method)).stream()
-                    .reduce((first, second) -> second).stream().findFirst()
+            List<String> orderedConfiguration = orderedConfiguration(restrictConfiguration(configuration, method));
+            return Optional.of(orderedConfiguration.get(orderedConfiguration.size() - 1))
                     .map(feature::equals).orElse(false);
         }
 
@@ -339,7 +339,7 @@ public class Model {
         }
     }
 
-    public static class BindingGraph implements Util.IDot {
+    public static class BindingGraph {
         Set<Node> nodes = new HashSet<>();
         Set<Edge> edges = new HashSet<>();
 
@@ -364,12 +364,9 @@ public class Model {
                     .map(sourceNode -> new Edge(sourceNode, targetNode))).collect(Collectors.toSet());
         }
 
-        String toDotString(Set<Node> focusNodes, Set<Edge> focusEdges) {
+        String toDot(Set<Node> focusNodes, Set<Edge> focusEdges) {
             return String.format("digraph {\n" +
                             "rankdir = LR;\n" +
-                            "graph [fontname = \"Handlee\"];\n" +
-                            "node [fontname = \"Handlee\"];\n" +
-                            "edge [fontname = \"Handlee\"];\n" +
                             "%s\n" +
                             "%s\n" +
                             "%s\n" +
@@ -387,7 +384,7 @@ public class Model {
                                                     "\"%s\" [label = \"%s\", tooltip = \"%s\", style = \"%s\"];",
                                                     node.id, node.toShortString(), node.toLongString(),
                                                     focusNodes != null && !focusNodes.contains(node) ? "invis" :
-                                                            node.isComplete() ? "diagonals,bold" : "solid"))
+                                                            node.isComplete() ? "diagonals" : "solid"))
                                             .collect(Collectors.joining("\n"))))
                             .collect(Collectors.joining("\n")),
                     edges.stream().map(edge -> String.format("\"%s\" -> \"%s\" [tooltip = \"%s\"%s];",
@@ -401,8 +398,8 @@ public class Model {
                             .collect(Collectors.joining("\n")));
         }
 
-        public String toDotString() {
-            return toDotString(null, null);
+        public String toDot() {
+            return toDot(null, null);
         }
 
         VerificationPlan someVerificationPlan() {
@@ -425,7 +422,7 @@ public class Model {
         }
     }
 
-    public static class VerificationPlan implements Util.IDot {
+    public static class VerificationPlan {
         BindingGraph bindingGraph;
         Set<Node> nodes;
         Set<Edge> edges;
@@ -436,8 +433,8 @@ public class Model {
             this.edges = new HashSet<>(edges);
         }
 
-        public String toDotString() {
-            return bindingGraph.toDotString(nodes, edges);
+        public String toDot() {
+            return bindingGraph.toDot(nodes, edges);
         }
 
         VerificationPlan minify() {

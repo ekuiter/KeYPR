@@ -1,8 +1,5 @@
 package de.ovgu.spldev.keypr;
 
-import org.pmw.tinylog.Level;
-import org.pmw.tinylog.Logger;
-
 import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -88,7 +85,6 @@ public class Utils {
         try {
             Files.createDirectories(path);
         } catch (IOException e) {
-            Logger.error("creating {} failed: {}", path, e);
         }
     }
 
@@ -96,7 +92,6 @@ public class Utils {
         try {
             Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            Logger.error("moving {} to {} failed: {}", from, to, e);
         }
     }
 
@@ -108,7 +103,6 @@ public class Utils {
                     .map(Path::toFile)
                     .forEach(File::delete);
         } catch (IOException e) {
-            Logger.error("deleting {} failed: {}", path, e);
         }
     }
 
@@ -175,7 +169,7 @@ public class Utils {
     }
 
     static boolean isDebugLevel() {
-        return Logger.getLevel().ordinal() <= Level.DEBUG.ordinal();
+        return false;
     }
 
     static List<String> split(String str) {

@@ -32,7 +32,6 @@ import de.uka.ilkd.key.strategy.StrategyProperties;
 import de.uka.ilkd.key.util.KeYTypeUtil;
 import org.key_project.util.collection.ImmutableSet;
 import org.key_project.util.java.IOUtil;
-import org.pmw.tinylog.Logger;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -85,7 +84,6 @@ public class KeYBridge {
         }
 
         private static void setProperty(StrategyProperties strategyProperties, String key, String value) {
-            Logger.trace("Set strategy property {}={}", key, value);
             strategyProperties.setProperty(key, value);
         }
 
@@ -120,7 +118,6 @@ public class KeYBridge {
     private final Map<String, String> strategyProperties;
 
     static {
-        Logger.trace("Initializing KeY bridge");
         ExitMainAction.exitSystem = false;
         System.setProperty(PathConfig.DISREGARD_SETTINGS_PROPERTY, "true");
         PathConfig.setKeyConfigDir(IOUtil.getHomeDirectory() + File.separator + ".keypr");
@@ -135,7 +132,6 @@ public class KeYBridge {
     }
 
     KeYBridge(File file, Mode _mode, OptimizationStrategy optimizationStrategy, Map<String, String> strategyProperties) {
-        Logger.trace("Loading problem file");
         mode = _mode;
         UserInterfaceControl userInterface;
         this.optimizationStrategy = optimizationStrategy;
@@ -187,11 +183,9 @@ public class KeYBridge {
 
     private void debugger() {
         if (mainWindow == null) {
-            Logger.trace("skipping breakpoint - to debug a proof, use Mode.GUI or Mode.DEBUG!");
             return;
         }
 
-        Logger.trace("breakpoint reached, pausing until window is closed");
         mainWindow.setVisible(true);
         Object lock = new Object();
         Thread thread = new Thread(() -> {
@@ -297,10 +291,6 @@ public class KeYBridge {
     }
 
     private Proof proveContract(Contract contract, boolean isAbstractProof, boolean useAbstractContracts) {
-        Logger.trace("{} proof for contract {}",
-                keYEnvironment.getLoadedProof() == null
-                        ? "Beginning"
-                        : isAbstractProof ? "Continuing" : "Completing", contract.getName());
         Proof proof = beginOrContinueProof(contract);
         optimizationStrategy.updateStrategySettings(proof.getSettings().getStrategySettings(), strategyProperties);
         if (useAbstractContracts)

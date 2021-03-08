@@ -1,7 +1,6 @@
 package de.ovgu.spldev.keypr;
 
 import de.uka.ilkd.key.proof.Statistics;
-import org.pmw.tinylog.Logger;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -90,8 +89,6 @@ public class Program implements Utils.Dumpable {
         if (settings.size() == 0)
             return Program.Setting.defaultValues.get(key);
         String value = settings.get(settings.size() - 1);
-        if (settings.size() > 1)
-            Logger.warn("Found {} settings for key {}, using the latest value {}", settings.size(), key, value);
         return value;
     }
 

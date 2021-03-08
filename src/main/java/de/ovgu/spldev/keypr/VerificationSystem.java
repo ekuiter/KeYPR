@@ -2,7 +2,6 @@ package de.ovgu.spldev.keypr;
 
 import de.uka.ilkd.key.proof.Proof;
 import de.uka.ilkd.key.proof.Statistics;
-import org.pmw.tinylog.Logger;
 
 import java.io.Closeable;
 import java.io.File;
@@ -31,7 +30,6 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
     public void close() {
         String store = proofRepository.program.getSettingValue(Program.Setting.STORE_PROOF_CONTEXTS);
         if (store != null) {
-            Logger.trace("Storing {} proof contexts to {}", proofContexts.size(), store);
             Path storePath = Paths.get(store);
             Utils.createDirectory(storePath);
             proofContexts.forEach((proofDescriptor, path) -> {
@@ -41,7 +39,6 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
                                 Utils.toHash(csv) + "_" + code.substring(0, Math.min(code.length(), 6))));
             });
         } else {
-            Logger.trace("Deleting {} proof contexts", proofContexts.size());
             proofContexts.forEach((proofDescriptor, path) -> Utils.deleteDirectory(path));
         }
     }
@@ -78,12 +75,8 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
     }
 
     private File generateJavaClassFile(Path path, Program.Implementation implementation, List<Program.Binding> bindings) {
-        Logger.trace("Generating proof context");
-        Logger.trace("Path: {}", path);
         Path klassPath = resolveJavaClassFile(path, implementation.klass);
-        Logger.trace("Generating Java code for {}", implementation);
         String javaClass = codeGenerator.generateJavaClass(implementation, bindings);
-        Logger.trace("Path: {}", klassPath);
         Utils.writeFile(klassPath, javaClass);
         return path.toFile();
     }
@@ -93,12 +86,9 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
     }
 
     private Utils.Pair<File, Proof> continueProof(Path path, Program.Implementation implementation, List<Program.Binding> bindings, String serializedProof, boolean isAbstractProof) {
-        Logger.info("Proving {} for {} bindings", implementation, bindings.size());
         File proofContext = generateJavaClassFile(path, implementation, bindings), problemFile;
         if (serializedProof != null) {
             problemFile = proofContext.toPath().resolve("problem.key").toFile();
-            Logger.trace("Continuing partial proof");
-            Logger.trace("Path: {}", problemFile);
             Utils.writeFile(problemFile, serializedProof);
         } else
             problemFile = proofContext;
@@ -110,25 +100,6 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
         Utils.writeFile(proofFile, KeYBridge.serializeProof(proof));
         Utils.writeFile(statisticsFile, proof.getStatistics().toString());
         String proofStatus = proof.closed() ? "CLOSED" : "OPEN";
-        Logger.info("Proof {} ({} nodes, {} ms)",
-                proofStatus, proof.getStatistics().nodes, proof.getStatistics().autoModeTimeInMillis);
-        Logger.info("Path: {}", proofFile);
-        Logger.info("\n" + Utils.join(
-                (serializedProof != null ? "CONTINUED partial proof" : "BEGAN new proof") + " with " +
-                        (isAbstractProof ? "ABSTRACT proof strategy" : "COMPLETING proof strategy") + " for",
-                "  " + implementation,
-                bindings.stream().map(binding -> "  " + binding.toString()).collect(Collectors.joining("\n")),
-                "Proof " + proofStatus + ", proof context:",
-                "  " + proofContext.getAbsolutePath(),
-                serializedProof != null ? "  " + problemFile.getAbsolutePath() : null,
-                proofRepository.program.classes.stream()
-                        .map(klass -> {
-                            Path _path = resolveJavaClassFile(proofContext.toPath(), klass);
-                            return _path.toFile().exists() ? "  " + _path.toString() : null;
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.joining("\n")),
-                "  " + proofFile.getAbsolutePath()));
         return new Utils.Pair<>(proofContext, proof);
     }
 
@@ -159,7 +130,6 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
         } else
             throw new RuntimeException("invalid verification state");
         proofs.put(proofDescriptor, proof);
-        Logger.trace("Adding {}", proof);
     }
 
     public void verify() {
