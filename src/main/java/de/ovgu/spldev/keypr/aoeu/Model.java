@@ -9,19 +9,11 @@ public class Model {
         String feature;
         String name;
         VerificationSystem.IHoareTriple hoareTriple;
-        Set<Call> implementationCalls;
-        Set<Call> contractCalls;
 
         public Method(String feature, String name, VerificationSystem.IHoareTriple hoareTriple) {
             this.feature = feature;
             this.name = name;
             this.hoareTriple = hoareTriple;
-            this.implementationCalls = Arrays.stream(hoareTriple.implementationCalls())
-                    .map(call -> new Call(this, call))
-                    .collect(Collectors.toSet());
-            this.contractCalls = Arrays.stream(hoareTriple.contractCalls())
-                    .map(call -> new Call(this, call))
-                    .collect(Collectors.toSet());
         }
 
         @Override
@@ -42,15 +34,27 @@ public class Model {
             return Objects.hash(feature, name);
         }
 
+        Set<Call> implementationCalls() {
+            return hoareTriple.implementationCalls().stream()
+                    .map(call -> new Call(this, call))
+                    .collect(Collectors.toSet());
+        }
+
+        Set<Call> contractCalls() {
+            return hoareTriple.contractCalls().stream()
+                    .map(call -> new Call(this, call))
+                    .collect(Collectors.toSet());
+        }
+
         Set<Call> calls() {
-            Set<Call> calls = new HashSet<>(implementationCalls);
-            calls.addAll(contractCalls);
+            Set<Call> calls = new HashSet<>(implementationCalls());
+            calls.addAll(contractCalls());
             return calls;
         }
 
         Set<Call> extendedCalls(Set<Binding> bindings, int i) {
             if (bindings.isEmpty())
-                return i == 0 ? calls() : contractCalls;
+                return i == 0 ? calls() : contractCalls();
             else {
                 Binding binding = bindings.iterator().next();
                 Set<Binding> smallerBindings = new HashSet<>(bindings);
@@ -159,8 +163,7 @@ public class Model {
 
         boolean isLastFeature(Set<String> configuration, String feature, String method) {
             List<String> orderedConfiguration = orderedConfiguration(restrictConfiguration(configuration, method));
-            return Optional.of(orderedConfiguration.get(orderedConfiguration.size() - 1))
-                    .map(feature::equals).orElse(false);
+            return !orderedConfiguration.isEmpty() && orderedConfiguration.get(orderedConfiguration.size() - 1).equals(feature);
         }
 
         boolean isBeforeFeature(Set<String> configuration, String featureA, String featureB, String method) {
@@ -180,7 +183,7 @@ public class Model {
                 Set<Method> newDerivedMethods = derivedMethods.stream()
                         .flatMap(method -> methods.stream().filter(_method ->
                                 _method.name.equals(method.name) &&
-                                        method.implementationCalls.contains(new Call(method, "original")) &&
+                                        method.implementationCalls().contains(new Call(method, "original")) &&
                                         isBeforeFeature(configuration, _method.feature, method.feature, method.name)))
                         .collect(Collectors.toSet());
                 newDerivedMethods.removeAll(derivedMethods);
@@ -274,7 +277,7 @@ public class Model {
         }
 
         public String toShortString() {
-            return String.format("[%d]", bindings.size());
+            return String.format("%d", bindings.size());
         }
 
         public String toLongString() {

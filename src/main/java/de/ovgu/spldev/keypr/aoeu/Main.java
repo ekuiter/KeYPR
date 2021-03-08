@@ -1,5 +1,13 @@
 package de.ovgu.spldev.keypr.aoeu;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.comments.BlockComment;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import de.ovgu.featureide.fm.core.analysis.cnf.CNF;
 import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.analysis.cnf.generator.configuration.AllConfigurationGenerator;
@@ -15,34 +23,79 @@ import guru.nidi.graphviz.engine.Graphviz;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Main {
     public static void main(String[] args) {
+
+        String path = "examples/HelloWorld-FH-JML";
+
         LibraryManager.registerLibrary(FMCoreLibrary.getInstance());
-        IFeatureModel featureModel = FeatureModelManager.load(Paths.get("HelloWorld-FH-JML/model.xml"));
+        IFeatureModel featureModel = FeatureModelManager.load(Paths.get(path + "/model.xml"));
         CNF cnf = new FeatureModelFormula(featureModel).getCNF();
-        HashSet<Model.Method> methods = new HashSet<>();
-        methods.add(new Model.Method("Hello", "print", new VerificationSystem.Plain.HoareTriple(new String[]{}, new String[]{})));
-        methods.add(new Model.Method("Hello", "main", new VerificationSystem.Plain.HoareTriple(new String[]{"print"}, new String[]{})));
-        methods.add(new Model.Method("Beautiful", "print", new VerificationSystem.Plain.HoareTriple(new String[]{"original"}, new String[]{"original"})));
-        methods.add(new Model.Method("Wonderful", "print", new VerificationSystem.Plain.HoareTriple(new String[]{}, new String[]{"original"})));
-        methods.add(new Model.Method("World", "print", new VerificationSystem.Plain.HoareTriple(new String[]{"original"}, new String[]{"original"})));
-        Model.SoftwareProductLine spl = new Model.SoftwareProductLine(
-                featureModel.getFeatureOrderList(),
-                LongRunningWrapper.runMethod(new AllConfigurationGenerator(cnf)).stream()
-                        .map(is -> new HashSet<>(cnf.getVariables().convertToString(is))).collect(Collectors.toSet()),
-                methods);
-        for (Set<String> c : spl.configurations) {
-            System.out.println(c);
-            System.out.println(spl.orderedConfiguration(c));
-            System.out.println(spl.derivedMethods(c));
-            System.out.println(spl.derivedBindings(c));
-            System.out.println();
+//        HashSet<Model.Method> methods_ = new HashSet<>();
+//        methods_.add(new Model.Method("Hello", "HelloWorld::print", new VerificationSystem.Plain.HoareTriple(new String[]{}, new String[]{})));
+//        methods_.add(new Model.Method("Hello", "HelloWorld::main", new VerificationSystem.Plain.HoareTriple(new String[]{"HelloWorld::print"}, new String[]{})));
+//        methods_.add(new Model.Method("Beautiful", "HelloWorld::print", new VerificationSystem.Plain.HoareTriple(new String[]{"original"}, new String[]{"original"})));
+//        methods_.add(new Model.Method("Wonderful", "HelloWorld::print", new VerificationSystem.Plain.HoareTriple(new String[]{}, new String[]{"original"})));
+//        methods_.add(new Model.Method("World", "HelloWorld::print", new VerificationSystem.Plain.HoareTriple(new String[]{"original"}, new String[]{"original"})));
+
+        Set<String> methodNames = Stream.of("original").collect(Collectors.toSet());
+        Set<Model.Method> methods = new HashSet<>();
+        try {
+            Files.walk(Paths.get(path + "/features"), 1).forEach(directory -> {
+                String feature = directory.getFileName().toString();
+                if (feature.equals("features"))
+                    return;
+                try {
+                    Files.walk(Paths.get(path + "/features/" + feature)).forEach(file -> {
+                        try {
+                            String klass = file.getFileName().toString().replace(".java", "");
+                            CompilationUnit compilationUnit = StaticJavaParser.parse(file);
+                            new VoidVisitorAdapter<Set<Model.Method>>() {
+                                @Override
+                                public void visit(MethodDeclaration n, Set<Model.Method> methods) {
+                                    super.visit(n, methods);
+                                    Set<String> implementationCalls = new HashSet<>(), contractCalls = new HashSet<>();
+                                    Node.BreadthFirstIterator bfi = new Node.BreadthFirstIterator(n);
+                                    while (bfi.hasNext()) {
+                                        Node n2 = bfi.next();
+                                        if (n2 instanceof MethodCallExpr) {
+                                            implementationCalls.add(((MethodCallExpr) n2).getName().asString());
+                                        }
+                                    }
+                                    n.getComment().ifPresent(comment -> {
+                                        if (comment.getContent().contains("\\original"))
+                                            contractCalls.add("original");
+                                    });
+                                    methodNames.add(n.getName().asString());
+                                    // Assumption: if class A != class B and there are methods A.m1 and B.m2, m1 != m2.
+                                    methods.add(new Model.Method(feature, n.getName().asString(),
+                                            new VerificationSystem.Plain.HoareTriple(implementationCalls, contractCalls)));
+                                }
+                            }.visit(compilationUnit, methods);
+                        } catch (IOException e) {
+                        }
+                    });
+                } catch (IOException e) {
+                }
+            });
+        } catch (IOException e) {
         }
+        methods.forEach(method -> method.hoareTriple.implementationCalls().retainAll(methodNames));
+
+        Model.SoftwareProductLine spl = new Model.SoftwareProductLine(
+                featureModel.getFeatureOrderList(), // this omits abstract features!
+                LongRunningWrapper.runMethod(new AllConfigurationGenerator(cnf)).stream()
+                        .map(literalSet -> new HashSet<String>(cnf.getVariables().convertToString(literalSet))).collect(Collectors.toSet()),
+                methods);
 
 //        List<String> features = new ArrayList<>();
 //        features.add("List");

@@ -1,12 +1,15 @@
 package de.ovgu.spldev.keypr.aoeu;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public interface VerificationSystem {
     interface IHoareTriple {
-        String[] implementationCalls();
-        String[] contractCalls();
+        Set<String> implementationCalls();
+        Set<String> contractCalls();
     }
 
     interface IState {
@@ -36,21 +39,26 @@ public interface VerificationSystem {
 
     class Plain implements VerificationSystem {
         public static class HoareTriple implements IHoareTriple {
-            String[] implementationCalls;
-            String[] contractCalls;
+            Set<String> implementationCalls;
+            Set<String> contractCalls;
 
-            public HoareTriple(String[] implementationCalls, String[] contractCalls) {
+            public HoareTriple(Set<String> implementationCalls, Set<String> contractCalls) {
                 this.implementationCalls = implementationCalls;
                 this.contractCalls = contractCalls;
             }
 
+            public HoareTriple(String[] implementationCalls, String[] contractCalls) {
+                this(Arrays.stream(implementationCalls).collect(Collectors.toSet()),
+                        Arrays.stream(contractCalls).collect(Collectors.toSet()));
+            }
+
             @Override
-            public String[] implementationCalls() {
+            public Set<String> implementationCalls() {
                 return implementationCalls;
             }
 
             @Override
-            public String[] contractCalls() {
+            public Set<String> contractCalls() {
                 return contractCalls;
             }
         }
@@ -86,13 +94,13 @@ public interface VerificationSystem {
             }
 
             @Override
-            public String[] implementationCalls() {
-                return new String[0];
+            public Set<String> implementationCalls() {
+                return null;
             }
 
             @Override
-            public String[] contractCalls() {
-                return new String[0];
+            public Set<String> contractCalls() {
+                return null;
             }
         }
 
