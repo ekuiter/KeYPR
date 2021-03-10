@@ -8,9 +8,9 @@ public class Model {
     public static class Method {
         String feature;
         String name;
-        VerificationSystem.IHoareTriple hoareTriple;
+        VerificationSystem.HoareTriple hoareTriple;
 
-        public Method(String feature, String name, VerificationSystem.IHoareTriple hoareTriple) {
+        public Method(String feature, String name, VerificationSystem.HoareTriple hoareTriple) {
             this.feature = feature;
             this.name = name;
             this.hoareTriple = hoareTriple;
@@ -546,7 +546,7 @@ public class Model {
     public static class VerificationAttempt {
         VerificationPlan verificationPlan;
         List<Node> sortedNodes;
-        Map<Node, VerificationSystem.IState> map = new HashMap<>();
+        Map<Node, VerificationSystem.State> map = new HashMap<>();
 
         public VerificationAttempt(VerificationPlan verificationPlan) {
             this.verificationPlan = verificationPlan;

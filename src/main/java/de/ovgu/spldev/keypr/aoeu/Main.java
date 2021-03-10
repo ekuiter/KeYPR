@@ -25,13 +25,15 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Main {
     //static String featureIDEProject = "examples/HelloWorld-FH-JML";
     static String featureIDEProject = "examples/list";
-    static VerificationSystem verificationSystem = new VerificationSystem.Plain();
+    static VerificationSystem verificationSystem = new VerificationSystem();
 
     public static void main(String[] args) {
         LibraryManager.registerLibrary(FMCoreLibrary.getInstance());
@@ -73,15 +75,27 @@ public class Main {
                                             implementationCalls.add(((MethodCallExpr) n2).getName().asString());
                                         }
                                     }
+                                    final String[] contract = {"true", "true", "\\everything"};
                                     n.getComment().ifPresent(comment -> {
                                         if (comment.getContent().contains("\\original"))
                                             contractCalls.add("original");
+                                        Matcher matcher = Pattern.compile("@.*requires(.*);").matcher(comment.getContent());
+                                        if (matcher.find())
+                                            contract[0] = matcher.group(1).trim();
+                                        matcher = Pattern.compile("@.*ensures(.*);").matcher(comment.getContent());
+                                        if (matcher.find())
+                                            contract[1] = matcher.group(1).trim();
+                                        matcher = Pattern.compile("@.*assignable(.*);").matcher(comment.getContent());
+                                        if (matcher.find())
+                                            contract[2] = matcher.group(1).trim();
+                                        comment.remove();
                                     });
                                     methodNames.add(n.getName().asString());
                                     // Assumption: If class A != class B and there are methods A.m1 and B.m2, m1 != m2.
                                     // Basically, this forbids late binding / polymorphism.
                                     methods.add(new Model.Method(feature, n.getName().asString(),
-                                            new VerificationSystem.Plain.HoareTriple(implementationCalls, contractCalls)));
+                                            new VerificationSystem.KeY.HoareTriple(implementationCalls, contractCalls,
+                                                    contract[0], n.toString(), contract[1], contract[2])));
                                 }
                             }.visit(compilationUnit, methods);
                         } catch (IOException ignored) {

@@ -5,119 +5,88 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public interface VerificationSystem {
-    interface IHoareTriple {
-        Set<String> implementationCalls();
-        Set<String> contractCalls();
+public class VerificationSystem {
+    public static class HoareTriple {
+        Set<String> implementationCalls;
+        Set<String> contractCalls;
+
+        public HoareTriple(Set<String> implementationCalls, Set<String> contractCalls) {
+            this.implementationCalls = implementationCalls;
+            this.contractCalls = contractCalls;
+        }
+
+        public HoareTriple(String[] implementationCalls, String[] contractCalls) {
+            this(Arrays.stream(implementationCalls).collect(Collectors.toSet()),
+                    Arrays.stream(contractCalls).collect(Collectors.toSet()));
+        }
+
+        public Set<String> implementationCalls() {
+            return implementationCalls;
+        }
+
+        public Set<String> contractCalls() {
+            return contractCalls;
+        }
     }
 
-    interface IState {
+    public static class State {
     }
 
-    IState beginProof(Model.Method method);
+    State beginProof(Model.Method method) {
+        return null;
+    }
 
-    default IState beginProof(Model.Method method, Set<Model.Binding> bindings) {
-        IState verificationState = beginProof(method);
+    State beginProof(Model.Method method, Set<Model.Binding> bindings) {
+        State state = beginProof(method);
         for (Model.Binding binding : bindings) // nondeterministic!
-            verificationState = continueProof(verificationState, binding);
-        return verificationState;
+            state = continueProof(state, binding);
+        return state;
     }
 
-    default IState continueProof(IState verificationState, Model.Binding binding) {
-        return continueProof(verificationState, Collections.singleton(binding));
+    State continueProof(State state, Model.Binding binding) {
+        return null;
     }
 
-    default IState continueProof(IState verificationState, Set<Model.Binding> bindings) {
+    State continueProof(State state, Set<Model.Binding> bindings) {
         // technically, this is not reproducible due to lack of set order
         for (Model.Binding binding : bindings)
-            verificationState = continueProof(verificationState, binding);
-        return verificationState;
+            state = continueProof(state, binding);
+        return state;
     }
 
-    boolean completeProof(IState verificationState);
-
-    class Plain implements VerificationSystem {
-        public static class HoareTriple implements IHoareTriple {
-            Set<String> implementationCalls;
-            Set<String> contractCalls;
-
-            public HoareTriple(Set<String> implementationCalls, Set<String> contractCalls) {
-                this.implementationCalls = implementationCalls;
-                this.contractCalls = contractCalls;
-            }
-
-            public HoareTriple(String[] implementationCalls, String[] contractCalls) {
-                this(Arrays.stream(implementationCalls).collect(Collectors.toSet()),
-                        Arrays.stream(contractCalls).collect(Collectors.toSet()));
-            }
-
-            @Override
-            public Set<String> implementationCalls() {
-                return implementationCalls;
-            }
-
-            @Override
-            public Set<String> contractCalls() {
-                return contractCalls;
-            }
-        }
-
-        @Override
-        public IState beginProof(Model.Method method) {
-            return null;
-        }
-
-        @Override
-        public IState continueProof(IState verificationState, Model.Binding binding) {
-            return null;
-        }
-
-        @Override
-        public boolean completeProof(IState verificationState) {
-            return true;
-        }
+    public boolean completeProof(State state) {
+        return true;
     }
 
-    class KeY implements VerificationSystem {
-        public static class HoareTriple implements IHoareTriple {
+    static class KeY extends VerificationSystem {
+        public static class HoareTriple extends VerificationSystem.HoareTriple {
             String requires;
             String implementation;
             String ensures;
             String assignable;
 
-            public HoareTriple(String requires, String implementation, String ensures, String assignable) {
+            public HoareTriple(Set<String> implementationCalls, Set<String> contractCalls,
+                               String requires, String implementation, String ensures, String assignable) {
+                super(implementationCalls, contractCalls);
                 this.requires = requires;
                 this.implementation = implementation;
                 this.ensures = ensures;
                 this.assignable = assignable;
             }
-
-            @Override
-            public Set<String> implementationCalls() {
-                return null;
-            }
-
-            @Override
-            public Set<String> contractCalls() {
-                return null;
-            }
         }
 
-        public static class VerificationState implements IState {
+        public static class State extends VerificationSystem.State {
         }
 
-        @Override
-        public IState beginProof(Model.Method method) {
+        public State beginProof(Model.Method method) {
             return null;
         }
 
-        @Override
-        public IState continueProof(IState verificationState, Model.Binding binding) {
+        public State continueProof(State state, Model.Binding binding) {
             return null;
         }
 
-        @Override
-        public boolean completeProof(IState verificationState) {
+        public boolean completeProof(State state) {
             return true;
         }
     }
