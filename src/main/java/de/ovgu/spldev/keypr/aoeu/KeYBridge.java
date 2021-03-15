@@ -4,16 +4,12 @@ import de.ovgu.spldev.keypr.Signature;
 import de.ovgu.spldev.keypr.Utils;
 import de.uka.ilkd.key.control.DefaultUserInterfaceControl;
 import de.uka.ilkd.key.control.KeYEnvironment;
-import de.uka.ilkd.key.control.ProofControl;
 import de.uka.ilkd.key.control.UserInterfaceControl;
 import de.uka.ilkd.key.gui.MainWindow;
 import de.uka.ilkd.key.gui.actions.ExitMainAction;
 import de.uka.ilkd.key.gui.notification.NotificationEventID;
 import de.uka.ilkd.key.java.abstraction.KeYJavaType;
 import de.uka.ilkd.key.logic.op.IObserverFunction;
-import de.uka.ilkd.key.macros.CompleteAbstractProofMacro;
-import de.uka.ilkd.key.macros.ContinueAbstractProofMacro;
-import de.uka.ilkd.key.macros.ProofMacro;
 import de.uka.ilkd.key.proof.Proof;
 import de.uka.ilkd.key.proof.Statistics;
 import de.uka.ilkd.key.proof.init.InitConfig;
@@ -50,64 +46,24 @@ public class KeYBridge {
 
     public static class OptimizationStrategy {
         public static OptimizationStrategy NONE = new OptimizationStrategy(
-                10000, 5 * 60 * 1000, false, false, false, false, false);
-        public static OptimizationStrategy DEFAULT = new OptimizationStrategy(
-                10000, 5 * 60 * 1000, true, true, false, false, false);
-        public static OptimizationStrategy STRICT = new OptimizationStrategy(
-                10000, 5 * 60 * 1000, true, true, true, true, true);
+                10000, 5 * 60 * 1000, StrategyProperties.NON_LIN_ARITH_NONE);
 
         private final int maxSteps;
         private final long timeout;
-        private final List<String> forbiddenRuleSets = new ArrayList<>();
-        private final List<String> forbiddenRules = new ArrayList<>();
-        private final boolean firstOrderGoalsForbidden;
+        private final String arithmeticTreatment;
 
-        private OptimizationStrategy(int maxSteps, int timeout, boolean cutsForbidden, boolean ifSplitsForbidden, boolean splitsForbidden, boolean simplifySelectForbidden, boolean firstOrderGoalsForbidden) {
+        private OptimizationStrategy(int maxSteps, int timeout, String arithmeticTreatment) {
             this.maxSteps = maxSteps;
             this.timeout = timeout;
-            forbiddenRuleSets.add("expand_def");
-            forbiddenRules.add("definition_axiom");
-            if (cutsForbidden) {
-                forbiddenRuleSets.add("cut");
-                forbiddenRuleSets.add("cut_direct");
-            }
-            if (ifSplitsForbidden)
-                forbiddenRules.add("ifthenelse_split");
-            if (splitsForbidden) {
-                forbiddenRuleSets.add("split");
-                forbiddenRuleSets.add("split_if");
-                forbiddenRuleSets.add("split_cond");
-            }
-            if (simplifySelectForbidden) {
-                forbiddenRules.add("simplifySelectOfAnonEQ");
-                forbiddenRules.add("simplifySelectOfAnon");
-            }
-            this.firstOrderGoalsForbidden = firstOrderGoalsForbidden;
-        }
-
-        private static void setProperty(StrategyProperties strategyProperties, String key, String value) {
-            strategyProperties.setProperty(key, value);
+            this.arithmeticTreatment = arithmeticTreatment;
         }
 
         private void updateStrategySettings(StrategySettings strategySettings, Map<String, String> strategyProperties) {
-            if (strategyProperties.get(StrategyProperties.QUERY_OPTIONS_KEY) != null ||
-                    strategyProperties.get(StrategyProperties.QUERYAXIOM_OPTIONS_KEY) != null)
-                throw new RuntimeException("overriding query treatment options is not supported");
             strategySettings.setMaxSteps(maxSteps);
             strategySettings.setTimeout(timeout);
             StrategyProperties activeStrategyProperties = strategySettings.getActiveStrategyProperties();
-            setProperty(activeStrategyProperties, StrategyProperties.QUERY_OPTIONS_KEY, StrategyProperties.QUERY_ON);
-            setProperty(activeStrategyProperties, StrategyProperties.QUERYAXIOM_OPTIONS_KEY, StrategyProperties.QUERYAXIOM_OFF);
-            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FIRST_ORDER_GOALS_FORBIDDEN, firstOrderGoalsForbidden ? "true" : "false");
-            strategyProperties.forEach((key, value) -> setProperty(activeStrategyProperties, key, value));
-            String additionalForbiddenRuleSets = strategyProperties.get(StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULE_SETS);
-            String additionalForbiddenRules = strategyProperties.get(StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULES);
-            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULE_SETS,
-                    (additionalForbiddenRuleSets != null ? additionalForbiddenRuleSets + (forbiddenRuleSets.size() > 0 ? "," : "") : "") +
-                            String.join(",", forbiddenRuleSets));
-            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULES,
-                    (additionalForbiddenRules != null ? additionalForbiddenRules + (forbiddenRules.size() > 0 ? "," : "") : "") +
-                            String.join(",", forbiddenRules));
+            activeStrategyProperties.setProperty(StrategyProperties.NON_LIN_ARITH_OPTIONS_KEY, arithmeticTreatment);
+            strategyProperties.forEach(activeStrategyProperties::setProperty);
             strategySettings.setActiveStrategyProperties(activeStrategyProperties);
         }
     }
@@ -323,30 +279,32 @@ public class KeYBridge {
             timePerStepInMillis += statistics.timePerStepInMillis;
         }
 
-        return new Statistics(nodes, branches, interactiveSteps, symbExApps, quantifierInstantiations, ossApps,
-                mergeRuleApps, totalRuleApps, smtSolverApps, dependencyContractApps, operationContractApps,
-                blockLoopContractApps, loopInvApps, autoModeTimeInMillis, timeInMillis,
-                statisticsList.isEmpty() ? 0 : timePerStepInMillis / statisticsList.size());
+        return null;
+//        Statistics(nodes, branches, interactiveSteps, symbExApps, quantifierInstantiations, ossApps,
+//                mergeRuleApps, totalRuleApps, smtSolverApps, dependencyContractApps, operationContractApps,
+//                blockLoopContractApps, loopInvApps, autoModeTimeInMillis, timeInMillis,
+//                statisticsList.isEmpty() ? 0 : timePerStepInMillis / statisticsList.size());
     }
 
     static Statistics subtractStatistics(Statistics s1, Statistics s2) {
-        return new Statistics(
-                s1.nodes - s2.nodes,
-                s1.branches - s2.branches,
-                s1.interactiveSteps - s2.interactiveSteps,
-                s1.symbExApps - s2.symbExApps,
-                s1.quantifierInstantiations - s2.quantifierInstantiations,
-                s1.ossApps - s2.ossApps,
-                s1.mergeRuleApps - s2.mergeRuleApps,
-                s1.totalRuleApps - s2.totalRuleApps,
-                s1.smtSolverApps - s2.smtSolverApps,
-                s1.dependencyContractApps - s2.dependencyContractApps,
-                s1.operationContractApps - s2.operationContractApps,
-                s1.blockLoopContractApps - s2.blockLoopContractApps,
-                s1.loopInvApps - s2.loopInvApps,
-                s1.autoModeTimeInMillis - s2.autoModeTimeInMillis,
-                s1.timeInMillis - s2.timeInMillis,
-                s1.timePerStepInMillis);
+        return null;
+//        return new Statistics(
+//                s1.nodes - s2.nodes,
+//                s1.branches - s2.branches,
+//                s1.interactiveSteps - s2.interactiveSteps,
+//                s1.symbExApps - s2.symbExApps,
+//                s1.quantifierInstantiations - s2.quantifierInstantiations,
+//                s1.ossApps - s2.ossApps,
+//                s1.mergeRuleApps - s2.mergeRuleApps,
+//                s1.totalRuleApps - s2.totalRuleApps,
+//                s1.smtSolverApps - s2.smtSolverApps,
+//                s1.dependencyContractApps - s2.dependencyContractApps,
+//                s1.operationContractApps - s2.operationContractApps,
+//                s1.blockLoopContractApps - s2.blockLoopContractApps,
+//                s1.loopInvApps - s2.loopInvApps,
+//                s1.autoModeTimeInMillis - s2.autoModeTimeInMillis,
+//                s1.timeInMillis - s2.timeInMillis,
+//                s1.timePerStepInMillis);
     }
 
     private static class BridgeProverTaskListener implements ProverTaskListener {

@@ -9,8 +9,6 @@ import de.uka.ilkd.key.gui.actions.ExitMainAction;
 import de.uka.ilkd.key.gui.notification.NotificationEventID;
 import de.uka.ilkd.key.java.abstraction.KeYJavaType;
 import de.uka.ilkd.key.logic.op.IObserverFunction;
-import de.uka.ilkd.key.macros.CompleteAbstractProofMacro;
-import de.uka.ilkd.key.macros.ContinueAbstractProofMacro;
 import de.uka.ilkd.key.macros.ProofMacro;
 import de.uka.ilkd.key.proof.Proof;
 import de.uka.ilkd.key.proof.Statistics;
@@ -96,16 +94,16 @@ public class KeYBridge {
             StrategyProperties activeStrategyProperties = strategySettings.getActiveStrategyProperties();
             setProperty(activeStrategyProperties, StrategyProperties.QUERY_OPTIONS_KEY, StrategyProperties.QUERY_ON);
             setProperty(activeStrategyProperties, StrategyProperties.QUERYAXIOM_OPTIONS_KEY, StrategyProperties.QUERYAXIOM_OFF);
-            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FIRST_ORDER_GOALS_FORBIDDEN, firstOrderGoalsForbidden ? "true" : "false");
-            strategyProperties.forEach((key, value) -> setProperty(activeStrategyProperties, key, value));
-            String additionalForbiddenRuleSets = strategyProperties.get(StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULE_SETS);
-            String additionalForbiddenRules = strategyProperties.get(StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULES);
-            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULE_SETS,
-                    (additionalForbiddenRuleSets != null ? additionalForbiddenRuleSets + (forbiddenRuleSets.size() > 0 ? "," : "") : "") +
-                            String.join(",", forbiddenRuleSets));
-            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULES,
-                    (additionalForbiddenRules != null ? additionalForbiddenRules + (forbiddenRules.size() > 0 ? "," : "") : "") +
-                            String.join(",", forbiddenRules));
+//            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FIRST_ORDER_GOALS_FORBIDDEN, firstOrderGoalsForbidden ? "true" : "false");
+//            strategyProperties.forEach((key, value) -> setProperty(activeStrategyProperties, key, value));
+//            String additionalForbiddenRuleSets = strategyProperties.get(StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULE_SETS);
+//            String additionalForbiddenRules = strategyProperties.get(StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULES);
+//            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULE_SETS,
+//                    (additionalForbiddenRuleSets != null ? additionalForbiddenRuleSets + (forbiddenRuleSets.size() > 0 ? "," : "") : "") +
+//                            String.join(",", forbiddenRuleSets));
+//            setProperty(activeStrategyProperties, StrategyProperties.ABSTRACT_PROOF_FORBIDDEN_RULES,
+//                    (additionalForbiddenRules != null ? additionalForbiddenRules + (forbiddenRules.size() > 0 ? "," : "") : "") +
+//                            String.join(",", forbiddenRules));
             strategySettings.setActiveStrategyProperties(activeStrategyProperties);
         }
     }
@@ -294,7 +292,7 @@ public class KeYBridge {
         Proof proof = beginOrContinueProof(contract);
         optimizationStrategy.updateStrategySettings(proof.getSettings().getStrategySettings(), strategyProperties);
         if (useAbstractContracts)
-            applyProofMacro(proof, isAbstractProof ? new ContinueAbstractProofMacro() : new CompleteAbstractProofMacro());
+            ;//applyProofMacro(proof, isAbstractProof ? new ContinueAbstractProofMacro() : new CompleteAbstractProofMacro());
         else
             applyProofStrategy(proof);
         return proof;
@@ -336,30 +334,11 @@ public class KeYBridge {
             timePerStepInMillis += statistics.timePerStepInMillis;
         }
 
-        return new Statistics(nodes, branches, interactiveSteps, symbExApps, quantifierInstantiations, ossApps,
-                mergeRuleApps, totalRuleApps, smtSolverApps, dependencyContractApps, operationContractApps,
-                blockLoopContractApps, loopInvApps, autoModeTimeInMillis, timeInMillis,
-                statisticsList.isEmpty() ? 0 : timePerStepInMillis / statisticsList.size());
+        return null;
     }
 
     static Statistics subtractStatistics(Statistics s1, Statistics s2) {
-        return new Statistics(
-                s1.nodes - s2.nodes,
-                s1.branches - s2.branches,
-                s1.interactiveSteps - s2.interactiveSteps,
-                s1.symbExApps - s2.symbExApps,
-                s1.quantifierInstantiations - s2.quantifierInstantiations,
-                s1.ossApps - s2.ossApps,
-                s1.mergeRuleApps - s2.mergeRuleApps,
-                s1.totalRuleApps - s2.totalRuleApps,
-                s1.smtSolverApps - s2.smtSolverApps,
-                s1.dependencyContractApps - s2.dependencyContractApps,
-                s1.operationContractApps - s2.operationContractApps,
-                s1.blockLoopContractApps - s2.blockLoopContractApps,
-                s1.loopInvApps - s2.loopInvApps,
-                s1.autoModeTimeInMillis - s2.autoModeTimeInMillis,
-                s1.timeInMillis - s2.timeInMillis,
-                s1.timePerStepInMillis);
+        return null;
     }
 
     private static class BridgeProverTaskListener implements ProverTaskListener {

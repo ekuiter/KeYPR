@@ -46,7 +46,7 @@ public class Main {
                 parseMethods(featureIDEProject));
         Model.BindingGraph bindingGraph = spl.program().prunedBindingGraph(spl);
         render(bindingGraph.toDot());
-        Model.VerificationPlan verificationPlan = bindingGraph.someVerificationPlan().minify(); //.optimize();
+        Model.VerificationPlan verificationPlan = bindingGraph.someVerificationPlan().minify().optimize();
         render(verificationPlan.toDot());
         verificationPlan.verificationAttempt().verify(new VerificationSystem.KeY(Paths.get("proofContexts")));
     }
