@@ -159,7 +159,7 @@ public abstract class Signature {
             return thisCopy;
         }
 
-        boolean matches(Method other) {
+        public boolean matches(Method other) {
             return type.equals(other.type) && className.equals(other.className) && name.equals(other.name) &&
                     Utils.streamEquals(
                             parameters.stream().map(pair -> pair.first),

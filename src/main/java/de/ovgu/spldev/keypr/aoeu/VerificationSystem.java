@@ -1,7 +1,11 @@
 package de.ovgu.spldev.keypr.aoeu;
 
+import de.ovgu.spldev.keypr.Program;
 import de.ovgu.spldev.keypr.Utils;
+import de.uka.ilkd.key.proof.Proof;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -63,6 +67,14 @@ public class VerificationSystem {
     }
 
     static class KeY extends VerificationSystem {
+        Path proofContextsPath;
+
+        public KeY(Path proofContextsPath) {
+            this.proofContextsPath = proofContextsPath;
+            Utils.deleteDirectory(proofContextsPath);
+            Utils.createDirectory(proofContextsPath);
+        }
+
         public static class HoareTriple extends VerificationSystem.HoareTriple {
             Signature signature;
             Set<Signature> signatures;
@@ -87,23 +99,65 @@ public class VerificationSystem {
         public static class State extends VerificationSystem.State {
             Model.Method method;
             Set<Model.Binding> bindings;
+            String partialProofBefore;
+            String partialProofAfter;
 
-            public State(Model.Method method, Set<Model.Binding> bindings) {
+            public State(Model.Method method, Set<Model.Binding> bindings, String partialProofBefore) {
                 this.method = method;
                 this.bindings = bindings;
+                this.partialProofBefore = partialProofBefore;
+            }
+
+            @Override
+            public String toString() {
+                String str = method.feature + "_" + method.name + "_" + bindings.stream()
+                        .map(binding -> String.format("%s_%s_%s_%s_%s",
+                                binding.source.in.feature, binding.source.in.name, binding.source.to,
+                                binding.destination.feature, binding.destination.name))
+                        .collect(Collectors.joining("_"));
+                return str.substring(0, Math.min(str.length(), 80)) + "_" + hashCode();
+            }
+
+            File createProofContext(Path proofContextsPath) {
+                Path proofContextPath = proofContextsPath.resolve(toString());
+                Utils.createDirectory(proofContextPath);
+                Path javaClassPath = proofContextPath.resolve("Gen.java");
+                Utils.writeFile(javaClassPath, new JavaClassGenerator(this).generate());
+                if (partialProofBefore != null)
+                    Utils.writeFile(proofContextPath.resolve("problem.key"), partialProofBefore);
+                return proofContextPath.toFile();
+            }
+
+            void writeProof(Path proofContextsPath, Proof proof) {
+                partialProofAfter = "aoeu"; // KeYBridge.serializeProof(proof);
+                Path proofContextPath = proofContextsPath.resolve(toString());
+                Utils.writeFile(proofContextPath.resolve("proof.key"), partialProofAfter);
+                Utils.writeFile(proofContextPath.resolve("statistics.txt"), "aoeu");
+                        //proof.getStatistics().toString());
             }
         }
 
-        @Override
-        public State beginProof(Model.Method method) {
-            return new State(method, new HashSet<>());
+        private void continueProof(State state) {
+            File proofContext = state.createProofContext(proofContextsPath);
+//            Proof proof = KeYBridge.proveContract(
+//                    state.partialProofBefore != null ? proofContext.toPath().resolve("problem.key").toFile() : proofContext,
+//                    KeYBridge.Mode.HEADLESS, KeYBridge.OptimizationStrategy.DEFAULT, new HashMap<>(), null);
+            state.writeProof(proofContextsPath, null);
         }
 
         @Override
-        public State continueProof(VerificationSystem.State state, Model.Binding binding) {
-            State newState = new State(((State) state).method, new HashSet<>(((State) state).bindings));
-            newState.bindings.add(binding);
-            System.out.println(new JavaCodeGenerator(newState).generate());
+        public State beginProof(Model.Method method, Set<Model.Binding> bindings) {
+            State state = new State(method, new HashSet<>(bindings), null);
+            continueProof(state);
+            return state;
+        }
+
+        @Override
+        public State continueProof(VerificationSystem.State state, Set<Model.Binding> bindings) {
+            State _state = (State) state;
+            State newState = new State(_state.method, new HashSet<>(_state.bindings), _state.partialProofAfter);
+            newState.bindings.addAll(bindings);
+            continueProof(newState);
             return newState;
         }
 
@@ -220,10 +274,10 @@ public class VerificationSystem {
             }
         }
 
-        static class JavaCodeGenerator {
+        static class JavaClassGenerator {
             State state;
 
-            public JavaCodeGenerator(State state) {
+            public JavaClassGenerator(State state) {
                 this.state = state;
             }
 
@@ -292,7 +346,7 @@ public class VerificationSystem {
                         generateContract("requires", replaceOriginal(hoareTriple.requires, true, scopedSignature(state.method, "original")) + ";",
                                 "ensures", replaceOriginal(hoareTriple.ensures, false, scopedSignature(state.method, "original")) + ";",
                                 "assignable", hoareTriple.assignable + ";").trim(),
-                        scopedSignature(state.method, "main"),
+                        hoareTriple.signature.withName("main"),
                         hoareTriple.implementation);
             }
         }

@@ -32,7 +32,7 @@ public class Utils {
         }
     }
 
-    static <T> T runSilentAndReturn(Supplier<T> supplier, boolean silentErr) {
+    public static <T> T runSilentAndReturn(Supplier<T> supplier, boolean silentErr) {
         PrintStream oldOut = System.out, oldErr = System.err;
         System.setOut(new NullPrintStream());
         if (silentErr)
@@ -45,7 +45,7 @@ public class Utils {
         }
     }
 
-    static void runSilent(Runnable runnable) {
+    public static void runSilent(Runnable runnable) {
         runSilentAndReturn(() -> {
             runnable.run();
             return null;
@@ -73,7 +73,7 @@ public class Utils {
         }
     }
 
-    static void writeFile(Path path, String content) {
+    public static void writeFile(Path path, String content) {
         writeFile(path.toFile(), content);
     }
 
@@ -81,7 +81,7 @@ public class Utils {
         writeFile(Paths.get(path), content);
     }
 
-    static void createDirectory(Path path) {
+    public static void createDirectory(Path path) {
         try {
             Files.createDirectories(path);
         } catch (IOException e) {
@@ -95,7 +95,7 @@ public class Utils {
         }
     }
 
-    static void deleteDirectory(Path path) {
+    public static void deleteDirectory(Path path) {
         try {
             //noinspection ResultOfMethodCallIgnored
             Files.walk(path)
@@ -168,7 +168,7 @@ public class Utils {
         }
     }
 
-    static boolean isDebugLevel() {
+    public static boolean isDebugLevel() {
         return false;
     }
 
