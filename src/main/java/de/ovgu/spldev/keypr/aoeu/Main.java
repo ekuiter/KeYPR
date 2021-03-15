@@ -23,6 +23,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -33,7 +34,6 @@ import java.util.stream.Stream;
 public class Main {
     //static String featureIDEProject = "examples/HelloWorld-FH-JML";
     static String featureIDEProject = "examples/list";
-    static VerificationSystem verificationSystem = new VerificationSystem();
 
     public static void main(String[] args) {
         LibraryManager.registerLibrary(FMCoreLibrary.getInstance());
@@ -48,7 +48,7 @@ public class Main {
         render(bindingGraph.toDot());
         Model.VerificationPlan verificationPlan = bindingGraph.someVerificationPlan().minify().optimize();
         render(verificationPlan.toDot());
-        verificationPlan.verificationAttempt().verify(verificationSystem);
+        verificationPlan.verificationAttempt().verify(new VerificationSystem.KeY());
     }
 
     private static Set<Model.Method> parseMethods(String path) {
@@ -76,25 +76,32 @@ public class Main {
                                         }
                                     }
                                     final String[] contract = {"true", "true", "\\everything"};
+                                    Set<String> signatures = new HashSet<>();
                                     n.getComment().ifPresent(comment -> {
                                         if (comment.getContent().contains("\\original"))
                                             contractCalls.add("original");
-                                        Matcher matcher = Pattern.compile("@.*requires(.*);").matcher(comment.getContent());
+                                        Matcher matcher = Pattern.compile("@.*requires(.*)").matcher(comment.getContent());
                                         if (matcher.find())
                                             contract[0] = matcher.group(1).trim();
-                                        matcher = Pattern.compile("@.*ensures(.*);").matcher(comment.getContent());
+                                        matcher = Pattern.compile("@.*ensures(.*)").matcher(comment.getContent());
                                         if (matcher.find())
                                             contract[1] = matcher.group(1).trim();
-                                        matcher = Pattern.compile("@.*assignable(.*);").matcher(comment.getContent());
+                                        matcher = Pattern.compile("@.*assignable(.*)").matcher(comment.getContent());
                                         if (matcher.find())
                                             contract[2] = matcher.group(1).trim();
+                                        Arrays.stream(comment.getContent().split("\\n")).forEach(line -> {
+                                            Matcher _matcher = Pattern.compile("@.*signature(.*)").matcher(line);
+                                            if (_matcher.find())
+                                                signatures.add(_matcher.group(1).trim());
+                                        });
                                         comment.remove();
                                     });
                                     methodNames.add(n.getName().asString());
                                     // Assumption: If class A != class B and there are methods A.m1 and B.m2, m1 != m2.
                                     // Basically, this forbids late binding / polymorphism.
                                     methods.add(new Model.Method(feature, n.getName().asString(),
-                                            new VerificationSystem.KeY.HoareTriple(implementationCalls, contractCalls,
+                                            new VerificationSystem.KeY.HoareTriple(signatures,
+                                                    implementationCalls, contractCalls,
                                                     contract[0], n.toString(), contract[1], contract[2])));
                                 }
                             }.visit(compilationUnit, methods);
