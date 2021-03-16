@@ -129,20 +129,20 @@ public class VerificationSystem {
             }
 
             void writeProof(Path proofContextsPath, Proof proof) {
-                partialProofAfter = "aoeu"; // KeYBridge.serializeProof(proof);
+                partialProofAfter = KeYBridge.serializeProof(proof);
                 Path proofContextPath = proofContextsPath.resolve(toString());
                 Utils.writeFile(proofContextPath.resolve("proof.key"), partialProofAfter);
-                Utils.writeFile(proofContextPath.resolve("statistics.txt"), "aoeu");
-                        //proof.getStatistics().toString());
+                Utils.writeFile(proofContextPath.resolve("statistics.txt"),
+                        (proof.closed() ? "closed" : "open") + "\n" + proof.getStatistics().toString());
             }
         }
 
         private void continueProof(State state) {
             File proofContext = state.createProofContext(proofContextsPath);
-//            Proof proof = KeYBridge.proveContract(
-//                    state.partialProofBefore != null ? proofContext.toPath().resolve("problem.key").toFile() : proofContext,
-//                    KeYBridge.Mode.HEADLESS, KeYBridge.OptimizationStrategy.DEFAULT, new HashMap<>(), null);
-            state.writeProof(proofContextsPath, null);
+            Proof proof = KeYBridge.proveContract(
+                    state.partialProofBefore != null ? proofContext.toPath().resolve("problem.key").toFile() : proofContext,
+                    KeYBridge.Mode.HEADLESS, KeYBridge.OptimizationStrategy.DEFAULT, "main");
+            state.writeProof(proofContextsPath, proof);
         }
 
         @Override

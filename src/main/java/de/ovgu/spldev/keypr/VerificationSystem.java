@@ -1,7 +1,7 @@
 package de.ovgu.spldev.keypr;
 
 import de.uka.ilkd.key.proof.Proof;
-import de.uka.ilkd.key.proof.Statistics;
+import de.uka.ilkd.key.proof.Stats;
 
 import java.io.Closeable;
 import java.io.File;
@@ -104,32 +104,32 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
     }
 
     private void verify(Program.ProofDescriptor proofDescriptor, Program.VerificationState verificationState) {
-        Path path = null;
-        try {
-            path = Files.createTempDirectory("keypr_");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        proofContexts.put(proofDescriptor, path);
-        Program.Proof proof;
-        if (verificationState instanceof Program.BeginProof) {
-            Utils.Pair<File, Proof> pair = beginProof(path, proofDescriptor.implementation);
-            proof = new Program.Proof(KeYBridge.serializeProof(pair.second),
-                    pair.second.getStatistics(), pair.second.closed(), pair.first.getAbsolutePath());
-        } else if (verificationState instanceof Program.ContinueProof) {
-            Program.Proof oldProof = proofs.get(((Program.ContinueProof) verificationState).proofDescriptor);
-            Utils.Pair<File, Proof> pair = continueProof(path, proofDescriptor.implementation,
-                    new ArrayList<>(proofDescriptor.bindings), oldProof != null ? oldProof.serializedProof : null,
-                    !proofDescriptor.isComplete());
-            proof = new Program.Proof(KeYBridge.serializeProof(pair.second),
-                    oldProof != null
-                            ? KeYBridge.subtractStatistics(pair.second.getStatistics(), oldProof.statistics)
-                            : pair.second.getStatistics(),
-                    pair.second.closed(), pair.first.getAbsolutePath());
-            proofs.put(proofDescriptor, proof);
-        } else
-            throw new RuntimeException("invalid verification state");
-        proofs.put(proofDescriptor, proof);
+//        Path path = null;
+//        try {
+//            path = Files.createTempDirectory("keypr_");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        proofContexts.put(proofDescriptor, path);
+//        Program.Proof proof;
+//        if (verificationState instanceof Program.BeginProof) {
+//            Utils.Pair<File, Proof> pair = beginProof(path, proofDescriptor.implementation);
+//            proof = new Program.Proof(KeYBridge.serializeProof(pair.second),
+//                    pair.second.getStatistics(), pair.second.closed(), pair.first.getAbsolutePath());
+//        } else if (verificationState instanceof Program.ContinueProof) {
+//            Program.Proof oldProof = proofs.get(((Program.ContinueProof) verificationState).proofDescriptor);
+//            Utils.Pair<File, Proof> pair = continueProof(path, proofDescriptor.implementation,
+//                    new ArrayList<>(proofDescriptor.bindings), oldProof != null ? oldProof.serializedProof : null,
+//                    !proofDescriptor.isComplete());
+//            proof = new Program.Proof(KeYBridge.serializeProof(pair.second),
+//                    oldProof != null
+//                            ? KeYBridge.subtractStatistics(pair.second.getStatistics(), oldProof.stats)
+//                            : pair.second.getStatistics(),
+//                    pair.second.closed(), pair.first.getAbsolutePath());
+//            proofs.put(proofDescriptor, proof);
+//        } else
+//            throw new RuntimeException("invalid verification state");
+//        proofs.put(proofDescriptor, proof);
     }
 
     public void verify() {
@@ -165,8 +165,8 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
                         .collect(Collectors.toList()), 1));
     }
 
-    public Statistics sumStatistics() {
+    public Stats sumStatistics() {
         return KeYBridge.sumStatistics(proofs.values().stream()
-                .map(proof -> proof.statistics).collect(Collectors.toList()));
+                .map(proof -> proof.stats).collect(Collectors.toList()));
     }
 }

@@ -1,6 +1,6 @@
 package de.ovgu.spldev.keypr;
 
-import de.uka.ilkd.key.proof.Statistics;
+import de.uka.ilkd.key.proof.Stats;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -408,12 +408,12 @@ public class Program implements Utils.Dumpable {
     public static class Proof implements Utils.Dumpable {
         public final boolean isClosed;
         public String serializedProof;
-        public Statistics statistics;
+        public Stats stats;
         public String proofContext;
 
-        Proof(String serializedProof, Statistics statistics, boolean isClosed, String proofContext) {
+        Proof(String serializedProof, Stats stats, boolean isClosed, String proofContext) {
             this.serializedProof = serializedProof;
-            this.statistics = statistics;
+            this.stats = stats;
             this.isClosed = isClosed;
             this.proofContext = proofContext;
         }
@@ -421,7 +421,7 @@ public class Program implements Utils.Dumpable {
         public String toString() {
             return String.format("Proof[%s%s%s]",
                     isClosed ? "closed" : "open",
-                    statistics != null ? " (" + statistics.nodes + " nodes, " + statistics.autoModeTimeInMillis + " ms)" : "",
+                    stats != null ? " (" + stats.nodes + " nodes, " + stats.autoModeTimeInMillis + " ms)" : "",
                     proofContext != null ? ", " + proofContext : "");
         }
     }

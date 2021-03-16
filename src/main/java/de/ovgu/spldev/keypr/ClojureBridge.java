@@ -5,9 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 class ClojureBridge {
-    private static final String CORE_NS = "clojure.core";
     private static final String KEYPR_NS = "de.ovgu.spldev.keypr";
-    private static final String KEYPR_CLJ = "@de/ovgu/spldev/keypr.clj";
 
     static void repl(String form) {
     }

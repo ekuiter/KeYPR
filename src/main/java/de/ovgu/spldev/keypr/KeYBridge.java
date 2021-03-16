@@ -11,7 +11,7 @@ import de.uka.ilkd.key.java.abstraction.KeYJavaType;
 import de.uka.ilkd.key.logic.op.IObserverFunction;
 import de.uka.ilkd.key.macros.ProofMacro;
 import de.uka.ilkd.key.proof.Proof;
-import de.uka.ilkd.key.proof.Statistics;
+import de.uka.ilkd.key.proof.Stats;
 import de.uka.ilkd.key.proof.init.InitConfig;
 import de.uka.ilkd.key.proof.init.ProofInputException;
 import de.uka.ilkd.key.proof.io.AbstractProblemLoader;
@@ -308,36 +308,36 @@ public class KeYBridge {
         }
     }
 
-    static Statistics sumStatistics(List<Statistics> statisticsList) {
+    static Stats sumStatistics(List<Stats> statsList) {
         int nodes = 0, branches = 0, interactiveSteps = 0, symbExApps = 0, quantifierInstantiations = 0,
                 ossApps = 0, mergeRuleApps = 0, totalRuleApps = 0, smtSolverApps = 0, dependencyContractApps = 0,
                 operationContractApps = 0, blockLoopContractApps = 0, loopInvApps = 0;
         long autoModeTimeInMillis = 0, timeInMillis = 0;
         float timePerStepInMillis = 0;
 
-        for (Statistics statistics : statisticsList) {
-            nodes += statistics.nodes;
-            branches += statistics.branches;
-            interactiveSteps += statistics.interactiveSteps;
-            symbExApps += statistics.symbExApps;
-            quantifierInstantiations += statistics.quantifierInstantiations;
-            ossApps += statistics.ossApps;
-            mergeRuleApps += statistics.mergeRuleApps;
-            totalRuleApps += statistics.totalRuleApps;
-            smtSolverApps += statistics.smtSolverApps;
-            dependencyContractApps += statistics.dependencyContractApps;
-            operationContractApps += statistics.operationContractApps;
-            blockLoopContractApps += statistics.blockLoopContractApps;
-            loopInvApps += statistics.loopInvApps;
-            autoModeTimeInMillis += statistics.autoModeTimeInMillis;
-            timeInMillis += statistics.timeInMillis;
-            timePerStepInMillis += statistics.timePerStepInMillis;
+        for (Stats stats : statsList) {
+            nodes += stats.nodes;
+            branches += stats.branches;
+            interactiveSteps += stats.interactiveSteps;
+            symbExApps += stats.symbExApps;
+            quantifierInstantiations += stats.quantifierInstantiations;
+            ossApps += stats.ossApps;
+            mergeRuleApps += stats.mergeRuleApps;
+            totalRuleApps += stats.totalRuleApps;
+            smtSolverApps += stats.smtSolverApps;
+            dependencyContractApps += stats.dependencyContractApps;
+            operationContractApps += stats.operationContractApps;
+            blockLoopContractApps += stats.blockLoopContractApps;
+            loopInvApps += stats.loopInvApps;
+            autoModeTimeInMillis += stats.autoModeTimeInMillis;
+            timeInMillis += stats.timeInMillis;
+            timePerStepInMillis += stats.timePerStepInMillis;
         }
 
         return null;
     }
 
-    static Statistics subtractStatistics(Statistics s1, Statistics s2) {
+    static Stats subtractStatistics(Stats s1, Stats s2) {
         return null;
     }
 
