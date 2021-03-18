@@ -1,7 +1,6 @@
 package de.ovgu.spldev.keypr;
 
 import de.uka.ilkd.key.proof.Proof;
-import de.uka.ilkd.key.proof.Stats;
 
 import java.io.Closeable;
 import java.io.File;
@@ -163,10 +162,5 @@ public class VerificationSystem implements Closeable, Utils.Dumpable {
                         .filter(entry -> !check(entry))
                         .map(e -> new Utils.Pair<>(e.getKey(), e.getValue()))
                         .collect(Collectors.toList()), 1));
-    }
-
-    public Stats sumStatistics() {
-        return KeYBridge.sumStatistics(proofs.values().stream()
-                .map(proof -> proof.stats).collect(Collectors.toList()));
     }
 }
