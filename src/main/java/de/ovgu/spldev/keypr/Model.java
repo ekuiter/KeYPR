@@ -1,4 +1,4 @@
-package de.ovgu.spldev.keypr.aoeu;
+package de.ovgu.spldev.keypr;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -10,7 +10,7 @@ public class Model {
         String name;
         VerificationSystem.HoareTriple hoareTriple;
 
-        public Method(String feature, String name, VerificationSystem.HoareTriple hoareTriple) {
+        Method(String feature, String name, VerificationSystem.HoareTriple hoareTriple) {
             this.feature = feature;
             this.name = name;
             this.hoareTriple = hoareTriple;
@@ -103,7 +103,7 @@ public class Model {
         Call source;
         Method destination;
 
-        public Binding(Call source, Method destination) {
+        Binding(Call source, Method destination) {
             this.source = source;
             this.destination = destination;
         }
@@ -132,7 +132,7 @@ public class Model {
         Set<Set<String>> configurations;
         Set<Method> methods;
 
-        public SoftwareProductLine(List<String> features, Set<Set<String>> configurations, Set<Method> methods) {
+        SoftwareProductLine(List<String> features, Set<Set<String>> configurations, Set<Method> methods) {
             this.features = features;
             this.configurations = new HashSet<>(configurations);
             this.methods = new HashSet<>(methods);
@@ -163,7 +163,8 @@ public class Model {
 
         boolean isLastFeature(Set<String> configuration, String feature, String method) {
             List<String> orderedConfiguration = orderedConfiguration(restrictConfiguration(configuration, method));
-            return !orderedConfiguration.isEmpty() && orderedConfiguration.get(orderedConfiguration.size() - 1).equals(feature);
+            return !orderedConfiguration.isEmpty() &&
+                    orderedConfiguration.get(orderedConfiguration.size() - 1).equals(feature);
         }
 
         boolean isBeforeFeature(Set<String> configuration, String featureA, String featureB, String method) {
@@ -220,7 +221,7 @@ public class Model {
         Set<Method> methods;
         Set<Binding> bindings;
 
-        public Program(Set<Method> methods, Set<Binding> bindings) {
+        Program(Set<Method> methods, Set<Binding> bindings) {
             this.methods = new HashSet<>(methods);
             this.bindings = new HashSet<>(bindings);
         }
@@ -250,6 +251,7 @@ public class Model {
             return nodes;
         }
 
+        @SuppressWarnings("unused")
         BindingGraph bindingGraph() {
             return new BindingGraph(bindingGraphNodes());
         }
@@ -265,7 +267,7 @@ public class Model {
         Method method;
         Set<Binding> bindings;
 
-        public Node(Method method, Set<Binding> bindings) {
+        Node(Method method, Set<Binding> bindings) {
             this.id = idCounter++;
             this.method = method;
             this.bindings = new HashSet<>(bindings);
@@ -276,11 +278,11 @@ public class Model {
             return String.format("%s[%d]", method, bindings.size());
         }
 
-        public String toShortString() {
+        String toShortString() {
             return String.format("%d", bindings.size());
         }
 
-        public String toLongString() {
+        String toLongString() {
             return String.format("%s%s", method, bindings);
         }
 
@@ -312,7 +314,7 @@ public class Model {
         Node sourceNode;
         Node targetNode;
 
-        public Edge(Node sourceNode, Node targetNode) {
+        Edge(Node sourceNode, Node targetNode) {
             this.sourceNode = sourceNode;
             this.targetNode = targetNode;
         }
@@ -346,17 +348,17 @@ public class Model {
         Set<Node> nodes = new HashSet<>();
         Set<Edge> edges = new HashSet<>();
 
-        public BindingGraph(Set<Node> nodes) {
+        BindingGraph(Set<Node> nodes) {
             this.nodes = new HashSet<>(nodes);
             this.edges = inferEdges(nodes);
         }
 
-        public BindingGraph(BindingGraph bindingGraph) {
+        BindingGraph(BindingGraph bindingGraph) {
             this.nodes = new HashSet<>(bindingGraph.nodes);
             this.edges = new HashSet<>(bindingGraph.edges);
         }
 
-        public BindingGraph() {
+        BindingGraph() {
         }
 
         static Set<Edge> inferEdges(Set<Node> nodes) {
@@ -376,9 +378,9 @@ public class Model {
                             "}",
                     nodes.stream().map(node -> node.method).distinct().map(method ->
                             String.format("subgraph \"cluster_%s\" {\n" +
-                                    "label = \"%s\";\n" +
-                                    "%s\n" +
-                                    "}\n",
+                                            "label = \"%s\";\n" +
+                                            "%s\n" +
+                                            "}\n",
                                     method,
                                     method,
                                     nodes.stream()
@@ -401,7 +403,7 @@ public class Model {
                             .collect(Collectors.joining("\n")));
         }
 
-        public String toDot() {
+        String toDot() {
             return toDot(null, null);
         }
 
@@ -411,7 +413,7 @@ public class Model {
     }
 
     public static class PrunedBindingGraph extends BindingGraph {
-        public PrunedBindingGraph(SoftwareProductLine softwareProductLine, Set<Node> nodes) {
+        PrunedBindingGraph(SoftwareProductLine softwareProductLine, Set<Node> nodes) {
             this.nodes = prune(softwareProductLine, nodes);
             this.edges = inferEdges(this.nodes);
         }
@@ -430,17 +432,17 @@ public class Model {
         Set<Node> nodes;
         Set<Edge> edges;
 
-        public VerificationPlan(BindingGraph bindingGraph, Set<Node> nodes, Set<Edge> edges) {
+        VerificationPlan(BindingGraph bindingGraph, Set<Node> nodes, Set<Edge> edges) {
             this.bindingGraph = new BindingGraph(bindingGraph);
             this.nodes = new HashSet<>(nodes);
             this.edges = new HashSet<>(edges);
         }
 
-        public String toDot() {
+        String toDot() {
             return bindingGraph.toDot(nodes, edges);
         }
 
-        VerificationPlan minify() {
+        VerificationPlan removeDeadEnds() {
             VerificationPlan verificationPlan = new VerificationPlan(bindingGraph, nodes, edges);
             boolean done = false;
             while (!done) {
@@ -457,7 +459,7 @@ public class Model {
             return verificationPlan;
         }
 
-        VerificationPlan optimize() {
+        VerificationPlan combineLinearSubPaths() {
             VerificationPlan verificationPlan = new VerificationPlan(bindingGraph, nodes, edges);
             boolean done = false;
             while (!done) {
@@ -468,8 +470,9 @@ public class Model {
                 if (removeNode != null) {
                     Edge parentEdge = verificationPlan.edges.stream().filter(edge -> edge.targetNode.equals(removeNode))
                             .findFirst().orElse(null);
-                    Edge childEdge = verificationPlan.edges.stream().filter(edge -> edge.sourceNode.equals(removeNode))
-                            .findFirst().get();
+                    @SuppressWarnings("OptionalGetWithoutIsPresent") Edge childEdge =
+                            verificationPlan.edges.stream().filter(edge -> edge.sourceNode.equals(removeNode))
+                                    .findFirst().get();
                     if (parentEdge != null) {
                         verificationPlan.edges.add(new Edge(parentEdge.sourceNode, childEdge.targetNode));
                         verificationPlan.edges.remove(parentEdge);
@@ -493,7 +496,7 @@ public class Model {
         BindingGraph bindingGraph;
         List<List<Edge>> edgeFamily;
 
-        public VerificationPlanGenerator(BindingGraph bindingGraph) {
+        VerificationPlanGenerator(BindingGraph bindingGraph) {
             this.bindingGraph = bindingGraph;
             edgeFamily = bindingGraph.nodes.stream()
                     .map(node -> bindingGraph.edges.stream().filter(edge -> edge.targetNode.equals(node))
@@ -501,6 +504,7 @@ public class Model {
                     .filter(edges -> !edges.isEmpty()).collect(Collectors.toList());
         }
 
+        @SuppressWarnings("NullableProblems")
         @Override
         public Iterator<VerificationPlan> iterator() {
             return new Iterator<VerificationPlan>() {
@@ -548,10 +552,10 @@ public class Model {
         List<Node> sortedNodes;
         Map<Node, VerificationSystem.State> map = new HashMap<>();
 
-        public VerificationAttempt(VerificationPlan verificationPlan) {
+        VerificationAttempt(VerificationPlan verificationPlan) {
             this.verificationPlan = verificationPlan;
             // this is ONE topological sorting, others are possible.
-            // this is not interesting if we restrict ourselves to one core and no network partitions.
+            // this is not interesting if we restrict ourselves to one CPU core and no network partitions.
             this.sortedNodes = verificationPlan.nodes.stream()
                     .sorted(Comparator.comparing(node -> node.bindings.size()))
                     .collect(Collectors.toList());
@@ -567,7 +571,7 @@ public class Model {
                 if (verificationPlan.edges.stream().noneMatch(edge -> edge.targetNode.equals(node)))
                     map.put(node, verificationSystem.beginProof(node.method, node.bindings));
                 else {
-                    Edge edge = verificationPlan.edges.stream()
+                    @SuppressWarnings("OptionalGetWithoutIsPresent") Edge edge = verificationPlan.edges.stream()
                             .filter(_edge -> _edge.targetNode.equals(node))
                             .findFirst().get();
                     map.put(node, verificationSystem.continueProof(map.get(edge.sourceNode), edge.newBindings()));
