@@ -42,7 +42,7 @@ Feel free to [contact me](mailto:kuiter@ovgu.de) (the main developer) if you hav
 ### References
 
 1. Wolfgang Ahrendt, Bernhard Beckert; Richard Bubel; Reiner Hähnle; Peter H. Schmitt, and Mattias Ulbrich. 2016. [Deductive Software Verification - The KeY Book - From Theory to Practice](https://www.key-project.org/thebook2/). Springer.
-2. Elias Kuiter. 2020. Proof Repositories for Correct-by-Construction Software Product Lines. Otto-von-Guericke-University Magdeburg. 
+2. Elias Kuiter. 2020. [Proof Repositories for Correct-by-Construction Software Product Lines](http://wwwiti.cs.uni-magdeburg.de/iti_db/publikationen/ps/auto/Kuiter2020:MasterThesis.pdf). Otto-von-Guericke-University Magdeburg. 
 3. Derrick G. Kourie and Bruce W. Watson. 2014. [The Correctness-by-Construction Approach to Programming](https://www.springerprofessional.de/the-correctness-by-construction-approach-to-programming/3827484). Springer Publishing Company, Incorporated.
 4. Tabea Bordis, Tobias Runge, Alexander Knüppel, Thomas Thüm, and Ina Schaefer. 2020. [Variational correctness-by-construction](https://dl.acm.org/doi/abs/10.1145/3377024.3377038). Working Conference on Variability Modelling of Software-Intensive Systems. 
 5. Tobias Runge, Ina Schaefer, Loek Cleophas, Thomas Thüm, Derrick G. Kourie, and Bruce W. Watson. 2019. [Tool Support for Correctness-by-Construction](https://www.springerprofessional.de/tool-support-for-correctness-by-construction/16601646). International Conference on Fundamental Approaches to Software Engineering. 
