@@ -2,7 +2,7 @@
 
 **KeY for Proof Repositories**
 
-This is a frontend to the [KeY verification system](http://key-project.org) [[1]](#references) for efficiently evaluating the correctness of *correct-by-construction software product lines* as described in my master thesis [[2]](#references).
+This is a frontend to the [KeY verification system](http://key-project.org) [[1]](#references) for efficiently evaluating the correctness of *correct-by-construction software product lines* as described in my master thesis [[2]](#references) and [defense slides](2021-01-08-Master-Thesis-Defense.pdf).
 
 *Correctness-by-construction* (CbC) [[3]](#references) is a methodology to systematically derive correct programs from a given specification.
 *Correct-by-construction software product lines* [[4]](#references) apply the CbC methodology to software product lines (SPLs), which are large families of programs that share a common set of features.
